@@ -1,10 +1,16 @@
 "use client"
 
 import { useEffect } from "react"
-import Link from "next/link"
+
 import { useAuthState } from "react-firebase-hooks/auth"
 import { auth } from "@/lib/firebaseConfig"
 import { useRouter } from "next/navigation"
+import Hero from "@/components/home/Hero"
+import Features from "@/components/home/Features"
+import HowItWorks from "@/components/home/HowItWorks"
+import Pricing from "@/components/home/Pricing"
+import Testimonials from "@/components/home/Testimonials"
+import CallToAction from "@/components/home/CTA"
 
 export default function Home() {
   const [user, loading] = useAuthState(auth)
@@ -21,17 +27,12 @@ export default function Home() {
   }
 
   return (
-    <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-      <h1 className="text-4xl font-bold mb-8">Welcome to AI Tutor</h1>
-      <p className="mb-4">Your AI-powered learning companion</p>
-      <div className="flex space-x-4">
-        <Link href="/signin" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Sign In
-        </Link>
-        <Link href="/signup" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-          Sign Up
-        </Link>
-      </div>
-    </div>
-  )
+    <>
+   <Hero />
+    <Features/>
+    <HowItWorks/>
+    <Pricing/>
+    <Testimonials/>
+    <CallToAction/>
+    </>)
 }
