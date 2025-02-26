@@ -16,16 +16,17 @@ export async function getGeminiResponse(prompt: string, subject: string) {
   // Get the assigned tutor name for the subject, or default to a general tutor
   const tutorName = tutorMapping[subject.toLowerCase()] || "Amit Verma"; 
 
-  // Configure Gemini model
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  // Configure Gemini model - using a specific model name instead of just "gemini"
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const personalizedPrompt = `
-    Your name is ${tutorName}, a friendly teacher from India who loves helping students understand ${subject}.
-    Speak in a warm, encouraging way and use simple explanations that anyone can understand.
-    Always start your response with a friendly greeting and end with a supportive note.
-    Keep your explanations concise and relatable, using everyday examples when possible. Include Formulas where neccessary. and give answer in markdown format
+    You are an Indian teacher who specializes in ${subject}.
+    Provide warm, encouraging explanations with simple language.
+    Use everyday examples when helpful. Include formulas if needed.
+    Format response in markdown.
+    Only introduce yourself by ${tutorName} if directly asked.
     
-    Here's what the student asked: ${prompt}
+    Student question: ${prompt}
   `;
 
   const result = await model.generateContent(personalizedPrompt);

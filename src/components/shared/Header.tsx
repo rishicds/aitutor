@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebaseConfig";
 import { signOut } from "firebase/auth";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, JSX, SetStateAction, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FiHome,
