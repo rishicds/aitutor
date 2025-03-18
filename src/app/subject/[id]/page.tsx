@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebaseConfig";
@@ -15,54 +15,59 @@ interface ChatMessage {
   id: string;
 }
 
-// Predefined question suggestions based on subjects
-const questionSuggestions: Record<string, string[]> = {
-  math: [
-    "How do I solve quadratic equations?",
-    "What is the Pythagorean theorem?",
-    "Can you explain calculus in simple terms?",
-  ],
-  physics: [
-    "What is Newton's first law of motion?",
-    "How does gravity work?",
-    "Explain the concept of relativity.",
-  ],
-  cs: [
-    "What is a binary search algorithm?",
-    "How does recursion work in programming?",
-    "Explain object-oriented programming with examples.",
-  ],
-  biology: [
-    "What is photosynthesis?",
-    "Can you explain DNA replication?",
-    "What are the functions of different blood cells?",
-  ],
-  chemistry: [
-    "What is the periodic table?",
-    "How do chemical reactions work?",
-    "Explain the concept of acids and bases.",
-  ],
-  literature: [
-    "What are the themes in Shakespeare’s works?",
-    "Can you summarize 'Pride and Prejudice'?",
-    "What makes a poem effective?",
-  ],
-};
+interface QuestionSuggestions {
+  [key: string]: string[];
+}
 
-export default function SubjectPage() {
-  const { id } = useParams();
+const SubjectPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const [user] = useAuthState(auth);
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [tokens, setTokens] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [tokens, setTokens] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Predefined question suggestions based on subjects
+  const questionSuggestions: QuestionSuggestions = {
+    math: [
+      "How do I solve quadratic equations?",
+      "What is the Pythagorean theorem?",
+      "Can you explain calculus in simple terms?",
+    ],
+    physics: [
+      "What is Newton's first law of motion?",
+      "How does gravity work?",
+      "Explain the concept of relativity.",
+    ],
+    cs: [
+      "What is a binary search algorithm?",
+      "How does recursion work in programming?",
+      "Explain object-oriented programming with examples.",
+    ],
+    biology: [
+      "What is photosynthesis?",
+      "Can you explain DNA replication?",
+      "What are the functions of different blood cells?",
+    ],
+    chemistry: [
+      "What is the periodic table?",
+      "How do chemical reactions work?",
+      "Explain the concept of acids and bases.",
+    ],
+    literature: [
+      "What are the themes in Shakespeare's works?",
+      "Can you summarize 'Pride and Prejudice'?",
+      "What makes a poem effective?",
+    ],
+  };
 
   useEffect(() => {
     const fetchTokens = async () => {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        setTokens(userDoc.data()?.tokens || 0);
+        const userData = userDoc.data();
+        setTokens(userData?.tokens || 0);
       }
     };
     fetchTokens();
@@ -76,14 +81,25 @@ export default function SubjectPage() {
     e.preventDefault();
     if (!user || tokens < 1 || !question.trim()) return;
 
-    const userMessage = { content: question, isAi: false, id: Date.now().toString() };
+    const userMessage: ChatMessage = { 
+      content: question, 
+      isAi: false, 
+      id: Date.now().toString() 
+    };
+    
     setMessages((prev) => [...prev, userMessage]);
     setQuestion("");
     setLoading(true);
 
     try {
+      {/* ignore below error while building */}
+
       const aiResponse = await getGeminiResponse(question, id as string);
-      setMessages((prev) => [...prev, { content: aiResponse, isAi: true, id: Date.now().toString() }]);
+      setMessages((prev) => [...prev, { 
+        content: aiResponse, 
+        isAi: true, 
+        id: Date.now().toString() 
+      }]);
 
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
@@ -105,7 +121,7 @@ export default function SubjectPage() {
   };
 
   return (
-    <div className="min-h-screen  text-black antialiased">
+    <div className="min-h-screen text-black antialiased">
       <ChatHeader id={id as string} tokens={tokens} />
 
       <main className="pt-16 pb-32">
@@ -154,4 +170,6 @@ export default function SubjectPage() {
       />
     </div>
   );
-}
+};
+
+export default SubjectPage;

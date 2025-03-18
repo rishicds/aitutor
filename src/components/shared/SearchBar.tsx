@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react'
 
-export default function SearchBar({ searchTerm, setSearchTerm }) {
+export default function SearchBar({ searchTerm, setSearchTerm }: { searchTerm: string, setSearchTerm: (term: string) => void }) {
   return (
     <div className="relative w-full max-w-md">
       <input

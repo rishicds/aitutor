@@ -8,8 +8,8 @@ import SearchBar from "@/components/shared/SearchBar"
 import TokenDisplay from "@/components/TokenDisplay"
 import SubjectCard from "@/components/SubjectCard"
 import {auth, db} from "@/lib/firebaseConfig"
-import { Coins, Book, Filter, Plus } from 'lucide-react'
-import {motion} from "framer-motion"
+import { Coins, Book, Filter, Plus, X } from 'lucide-react'
+import {motion, AnimatePresence} from "framer-motion"
 
 const subjects = [
   // JEE subjects
@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [tokens, setTokens] = useState(0)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -61,6 +62,34 @@ export default function Dashboard() {
   )
 
   const categories = ["All", "JEE", "NEET", "BTech CSE", "General"]
+
+  const openModal = () => {
+    setIsModalOpen(true)
+    // Prevent scrolling when modal is open
+    document.body.style.overflow = 'hidden'
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    // Re-enable scrolling
+    document.body.style.overflow = 'auto'
+  }
+
+  // Create Your Own Tutor Card Component
+  const CreateYourOwnTutorCard = () => (
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-6 shadow-xl cursor-pointer text-white flex flex-col items-center justify-center min-h-[220px]"
+      onClick={openModal}
+    >
+      <div className="bg-white/20 p-4 rounded-full mb-4">
+        <Plus size={32} className="text-white" />
+      </div>
+      <h3 className="text-xl font-bold mb-2">Create Your Own Tutor</h3>
+      <p className="text-white/80 text-center">Customize a tutor for your specific learning needs</p>
+    </motion.div>
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -131,19 +160,46 @@ export default function Dashboard() {
           {filteredSubjects.map((subject, index) => (
             <SubjectCard key={subject.id} subject={subject} index={index} />
           ))}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-6 text-white flex flex-col items-center justify-center cursor-pointer shadow-lg"
-          >
-            <Plus size={48} className="mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Create Your Own</h3>
-            <p className="text-center text-sm">
-              Customize your learning experience with a personalized subject
-            </p>
-          </motion.div>
+          
+          {/* Create Your Own Tutor Card */}
+          <CreateYourOwnTutorCard />
         </motion.div>
       </div>
+
+      {/* Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={closeModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                
+                <button
+                  onClick={closeModal}
+                  className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+               
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
