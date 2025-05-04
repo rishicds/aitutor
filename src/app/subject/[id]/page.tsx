@@ -94,7 +94,18 @@ const SubjectPage: React.FC = () => {
     try {
       {/* ignore below error while building */}
 
-      const aiResponse = await getGeminiResponse(question, id as string);
+      const tutorParams: {
+        subject: string;
+        personality: "friendly" | "strict" | "neutral";
+        level: "beginner" | "intermediate" | "expert";
+        teachingStyle: "conceptual" | "example-based" | "problem-solving";
+      } = {
+        subject: id as string,
+        personality: "friendly",
+        level: "intermediate",
+        teachingStyle: "example-based"
+      };
+      const aiResponse = await getGeminiResponse(question, tutorParams);
       setMessages((prev) => [...prev, { 
         content: aiResponse, 
         isAi: true, 
