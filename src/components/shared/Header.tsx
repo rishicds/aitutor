@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebaseConfig"
 import { signOut } from "firebase/auth"
 import { type Dispatch, type JSX, type SetStateAction, useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FiHome, FiBookOpen, FiZap, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiMenu, FiX } from "react-icons/fi"
+import { FiHome, FiBookOpen, FiZap, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiMenu, FiX, FiImage } from "react-icons/fi"
 
 const ResponsiveNavigation = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -81,6 +81,15 @@ const DesktopSideNav = () => {
           <FiShoppingCart />
           <span className="sr-only">Purchase</span>
         </NavItem>
+        <NavItem selected={selected === 5} id={5} setSelected={setSelected} link="/image-tutor">
+          <FiImage />
+          <span className="sr-only">Image Tutor</span>
+        </NavItem>
+        <NavItem selected={selected === 6} id={6} setSelected={setSelected} link="/profile">
+          <FiUser />
+          <span className="sr-only">User</span>
+        </NavItem>
+
 
         {/* Auth Buttons (Sign In/Out) */}
         <div className="mt-auto">
