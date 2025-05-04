@@ -28,11 +28,12 @@ export default function Home() {
 
   return (
     <>
-   <Hero/>
-    <Features/>
-    <HowItWorks/>
-    <Pricing/>
-    <Testimonials/>
-    <CallToAction/>
-    </>)
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <Pricing />
+      <Testimonials />
+      <CallToAction />
+    </>
+  )
 }

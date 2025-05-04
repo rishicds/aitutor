@@ -1,44 +1,50 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { auth, db } from "@/lib/firebaseConfig"
 import { doc, updateDoc, increment, getDoc } from "firebase/firestore"
 import { Check, Sparkles, Star, Zap, CreditCard, Gift, ShieldCheck, Clock } from "lucide-react"
 
 const tokenPackages = [
-  { 
-    id: "basic", 
-    tokens: 100, 
+  {
+    id: "basic",
+    tokens: 100,
     price: 499,
     color: "from-lavender-300 to-lavender-500",
     icon: <Zap className="h-6 w-6 mb-2 text-black" />,
-    perks: ["Basic API access", "Email support", "7-day history"]
+    perks: ["Basic API access", "Email support", "7-day history"],
   },
-  { 
-    id: "standard", 
-    tokens: 500, 
+  {
+    id: "standard",
+    tokens: 500,
     price: 1999,
     color: "from-lavender-400 to-lavender-600",
     icon: <Star className="h-6 w-6 mb-2 text-black" />,
-    perks: ["Full API access", "Priority support", "30-day history", "Advanced templates"] 
+    perks: ["Full API access", "Priority support", "30-day history", "Advanced templates"],
   },
-  { 
-    id: "premium", 
-    tokens: 1000, 
+  {
+    id: "premium",
+    tokens: 1000,
     price: 3499,
     color: "from-lavender-500 to-lavender-700",
     icon: <Sparkles className="h-6 w-6 mb-2 text-black" />,
-    perks: ["Unlimited API access", "24/7 support", "90-day history", "Custom templates", "Priority processing"]
+    perks: ["Unlimited API access", "24/7 support", "90-day history", "Custom templates", "Priority processing"],
   },
-  { 
-    id: "enterprise", 
-    tokens: 2500, 
+  {
+    id: "enterprise",
+    tokens: 2500,
     price: 7999,
     color: "from-lavender-600 to-lavender-800",
     icon: <ShieldCheck className="h-6 w-6 mb-2 text-black" />,
-    perks: ["Unlimited everything", "Dedicated account manager", "Custom integration", "White-label options", "SLA guarantees"]
-  }
+    perks: [
+      "Unlimited everything",
+      "Dedicated account manager",
+      "Custom integration",
+      "White-label options",
+      "SLA guarantees",
+    ],
+  },
 ]
 
 export default function PurchaseTokens() {
@@ -71,13 +77,13 @@ export default function PurchaseTokens() {
 
     try {
       // TODO: Implement Razorpay integration here
-      
+
       // For now, we'll just update the user's tokens in Firestore
       const userRef = doc(db, "users", user.uid)
       await updateDoc(userRef, {
         tokens: increment(selectedPackage.tokens),
       })
-      
+
       setCurrentTokens(currentTokens + selectedPackage.tokens)
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 3000)
@@ -92,7 +98,7 @@ export default function PurchaseTokens() {
   // Simulated coupon functionality
   const [couponCode, setCouponCode] = useState("")
   const [discount, setDiscount] = useState(0)
-  
+
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === "welcome10") {
       setDiscount(10)
@@ -113,7 +119,7 @@ export default function PurchaseTokens() {
       {showConfetti && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {[...Array(50)].map((_, i) => (
-            <div 
+            <div
               key={i}
               className="absolute animate-fall"
               style={{
@@ -121,9 +127,9 @@ export default function PurchaseTokens() {
                 top: `-${Math.random() * 20}px`,
                 width: `${Math.random() * 10 + 5}px`,
                 height: `${Math.random() * 10 + 5}px`,
-                backgroundColor: ['#C8B6E2', '#9575CD', '#7E57C2', '#B39DDB', '#D1C4E9'][Math.floor(Math.random() * 5)],
+                backgroundColor: ["#C8B6E2", "#9575CD", "#7E57C2", "#B39DDB", "#D1C4E9"][Math.floor(Math.random() * 5)],
                 animationDuration: `${Math.random() * 2 + 1}s`,
-                animationDelay: `${Math.random() * 0.5}s`
+                animationDelay: `${Math.random() * 0.5}s`,
               }}
             />
           ))}
@@ -162,7 +168,9 @@ export default function PurchaseTokens() {
             }`}
             onClick={() => setSelectedPackage(pkg)}
           >
-            <div className={`h-16 w-16 rounded-full bg-gradient-to-r ${pkg.color} flex items-center justify-center mb-4`}>
+            <div
+              className={`h-16 w-16 rounded-full bg-gradient-to-r ${pkg.color} flex items-center justify-center mb-4`}
+            >
               {pkg.icon}
             </div>
             <div className="flex items-baseline mb-2">
@@ -184,8 +192,8 @@ export default function PurchaseTokens() {
             </ul>
             <button
               onClick={(e) => {
-                e.stopPropagation();
-                setSelectedPackage(pkg);
+                e.stopPropagation()
+                setSelectedPackage(pkg)
               }}
               className={`w-full py-2 px-4 rounded-lg transition-all duration-300 ${
                 selectedPackage.id === pkg.id
@@ -213,18 +221,11 @@ export default function PurchaseTokens() {
                   placeholder="Enter coupon code"
                   className="flex-grow bg-lavender-50 rounded-l-lg p-3 focus:outline-none focus:ring-1 focus:ring-lavender-500 text-black border border-lavender-200"
                 />
-                <button
-                  onClick={applyCoupon}
-                  className="bg-lavender-500 px-4 rounded-r-lg text-white"
-                >
+                <button onClick={applyCoupon} className="bg-lavender-500 px-4 rounded-r-lg text-white">
                   Apply
                 </button>
               </div>
-              {discount > 0 && (
-                <p className="text-green-600 text-sm mt-2">
-                  {discount}% discount applied!
-                </p>
-              )}
+              {discount > 0 && <p className="text-green-600 text-sm mt-2">{discount}% discount applied!</p>}
             </div>
 
             <div>
@@ -240,7 +241,7 @@ export default function PurchaseTokens() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-gray-600">Selected Package</span>
@@ -253,7 +254,9 @@ export default function PurchaseTokens() {
               {discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Discount</span>
-                  <span className="text-green-600">-₹{(selectedPackage.price * discount / 100 / 100).toFixed(0)}</span>
+                  <span className="text-green-600">
+                    -₹{((selectedPackage.price * discount) / 100 / 100).toFixed(0)}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between border-t border-lavender-200 pt-4">
@@ -262,7 +265,7 @@ export default function PurchaseTokens() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-col">
             <div className="bg-lavender-50 p-6 rounded-xl mb-6 flex-grow border border-lavender-100">
               <h3 className="text-lg font-medium mb-4 text-black">Order Summary</h3>
@@ -274,7 +277,7 @@ export default function PurchaseTokens() {
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount ({discount}%)</span>
-                    <span>-₹{(selectedPackage.price * discount / 100 / 100).toFixed(0)}</span>
+                    <span>-₹{((selectedPackage.price * discount) / 100 / 100).toFixed(0)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-lavender-200 pt-4 font-bold">
@@ -283,7 +286,7 @@ export default function PurchaseTokens() {
                 </div>
               </div>
             </div>
-            
+
             <button
               onClick={handlePurchase}
               disabled={loading}
@@ -298,7 +301,7 @@ export default function PurchaseTokens() {
                 "Complete Purchase"
               )}
             </button>
-            
+
             <div className="flex items-center justify-center mt-4 text-sm text-gray-600">
               <Clock className="h-4 w-4 mr-2" />
               <span>Processing time: Instant activation</span>
@@ -315,7 +318,7 @@ export default function PurchaseTokens() {
           <h3 className="text-xl font-bold mb-2 text-black">Instant Activation</h3>
           <p className="text-gray-600">Tokens are added to your account immediately after purchase</p>
         </div>
-        
+
         <div className="white-card p-6 rounded-xl flex flex-col items-center text-center shadow-md">
           <div className="h-12 w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-4">
             <ShieldCheck className="h-6 w-6 text-lavender-600" />
@@ -323,7 +326,7 @@ export default function PurchaseTokens() {
           <h3 className="text-xl font-bold mb-2 text-black">Secure Transactions</h3>
           <p className="text-gray-600">All payments are processed securely through Razorpay</p>
         </div>
-        
+
         <div className="white-card p-6 rounded-xl flex flex-col items-center text-center shadow-md">
           <div className="h-12 w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-4">
             <Star className="h-6 w-6 text-lavender-600" />
@@ -338,7 +341,10 @@ export default function PurchaseTokens() {
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-medium mb-2 text-black">What are tokens used for?</h3>
-            <p className="text-gray-600">Tokens are used to access our AI services. Each API request consumes a certain number of tokens depending on complexity.</p>
+            <p className="text-gray-600">
+              Tokens are used to access our AI services. Each API request consumes a certain number of tokens depending
+              on complexity.
+            </p>
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-black">Do tokens expire?</h3>
@@ -346,11 +352,15 @@ export default function PurchaseTokens() {
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-black">Can I get a refund?</h3>
-            <p className="text-gray-600">Tokens are non-refundable once purchased. Please contact support for special circumstances.</p>
+            <p className="text-gray-600">
+              Tokens are non-refundable once purchased. Please contact support for special circumstances.
+            </p>
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-black">How do I track my token usage?</h3>
-            <p className="text-gray-600">You can monitor your token usage in the dashboard under the &aptos;Usage&aptos; section.</p>
+            <p className="text-gray-600">
+              You can monitor your token usage in the dashboard under the &aptos;Usage&aptos; section.
+            </p>
           </div>
         </div>
       </div>

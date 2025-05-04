@@ -1,42 +1,32 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebaseConfig";
-import { signOut } from "firebase/auth";
-import { Dispatch, JSX, SetStateAction, useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  FiHome,
-  FiBookOpen,
-  FiZap,
-  FiShoppingCart,
-  FiUser,
-  FiLogOut,
-  FiLogIn,
-  FiMenu,
-  FiX,
-} from "react-icons/fi";
+import Link from "next/link"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { auth } from "@/lib/firebaseConfig"
+import { signOut } from "firebase/auth"
+import { type Dispatch, type JSX, type SetStateAction, useState, useEffect } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { FiHome, FiBookOpen, FiZap, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiMenu, FiX } from "react-icons/fi"
 
 const ResponsiveNavigation = () => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Check screen size on mount and resize
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
+      setIsMobile(window.innerWidth < 768)
+    }
+
     // Initial check
-    checkScreenSize();
-    
+    checkScreenSize()
+
     // Add event listener
-    window.addEventListener("resize", checkScreenSize);
-    
+    window.addEventListener("resize", checkScreenSize)
+
     // Cleanup
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
+    return () => window.removeEventListener("resize", checkScreenSize)
+  }, [])
 
   return (
     <>
@@ -46,11 +36,11 @@ const ResponsiveNavigation = () => {
         <DesktopSideNav />
       )}
     </>
-  );
-};
+  )
+}
 
 const DesktopSideNav = () => {
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState(0)
   // const [user] = useAuthState(auth);
 
   return (
@@ -59,13 +49,7 @@ const DesktopSideNav = () => {
         {/* Logo */}
         <Link href="/">
           <div className="mb-6 cursor-pointer bg-lavender-100 p-2 rounded-full">
-            <svg
-              width="40"
-              height="28"
-              viewBox="0 0 40 28"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg width="40" height="28" viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -104,18 +88,18 @@ const DesktopSideNav = () => {
         </div>
       </nav>
     </div>
-  );
-};
+  )
+}
 
-const MobileNavigation = ({ 
-  mobileMenuOpen, 
-  setMobileMenuOpen 
-}: { 
-  mobileMenuOpen: boolean; 
-  setMobileMenuOpen: Dispatch<SetStateAction<boolean>> 
+const MobileNavigation = ({
+  mobileMenuOpen,
+  setMobileMenuOpen,
+}: {
+  mobileMenuOpen: boolean
+  setMobileMenuOpen: Dispatch<SetStateAction<boolean>>
 }) => {
-  const [selected, setSelected] = useState(0);
-  
+  const [selected, setSelected] = useState(0)
+
   return (
     <>
       {/* Floating Mobile Bottom Navigation Bar */}
@@ -129,7 +113,7 @@ const MobileNavigation = ({
             <FiBookOpen size={22} />
             <span className="text-xs mt-1">Learn</span>
           </MobileNavItem>
-          
+
           {/* Center Action Button */}
           <div className="relative -mt-6">
             <motion.button
@@ -143,7 +127,7 @@ const MobileNavigation = ({
               {mobileMenuOpen ? <FiX size={26} /> : <FiMenu size={28} />}
             </motion.button>
           </div>
-          
+
           <MobileNavItem selected={selected === 2} id={2} setSelected={setSelected} link="/ai-tutors">
             <FiUser size={22} />
             <span className="text-xs mt-1">Tutors</span>
@@ -158,7 +142,7 @@ const MobileNavigation = ({
       {/* Mobile Menu Overlay with Animated Cards */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             className="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex flex-col items-center justify-end pb-24"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -172,7 +156,7 @@ const MobileNavigation = ({
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
             >
               {/* Logo Card */}
-              <motion.div 
+              <motion.div
                 className="bg-white w-full rounded-xl p-4 flex justify-center items-center shadow-lg border border-lavender-100"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -198,7 +182,7 @@ const MobileNavigation = ({
               </motion.div>
 
               {/* Purchase Card */}
-              <motion.div 
+              <motion.div
                 className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -222,7 +206,7 @@ const MobileNavigation = ({
               </motion.div>
 
               {/* Auth Card */}
-              <motion.div 
+              <motion.div
                 className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -232,7 +216,7 @@ const MobileNavigation = ({
               </motion.div>
 
               {/* Quick Links Card */}
-              <motion.div 
+              <motion.div
                 className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -240,10 +224,30 @@ const MobileNavigation = ({
               >
                 <h3 className="text-slate-700 font-medium mb-3">Quick Links</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <QuickLinkButton icon={<FiUser />} label="Profile" onClick={() => setMobileMenuOpen(false)} link="/profile" />
-                  <QuickLinkButton icon={<FiShoppingCart />} label="Cart" onClick={() => setMobileMenuOpen(false)} link="/cart" />
-                  <QuickLinkButton icon={<FiBookOpen />} label="Courses" onClick={() => setMobileMenuOpen(false)} link="/courses" />
-                  <QuickLinkButton icon={<FiZap />} label="Practice" onClick={() => setMobileMenuOpen(false)} link="/practice" />
+                  <QuickLinkButton
+                    icon={<FiUser />}
+                    label="Profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/profile"
+                  />
+                  <QuickLinkButton
+                    icon={<FiShoppingCart />}
+                    label="Cart"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/cart"
+                  />
+                  <QuickLinkButton
+                    icon={<FiBookOpen />}
+                    label="Courses"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/courses"
+                  />
+                  <QuickLinkButton
+                    icon={<FiZap />}
+                    label="Practice"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/practice"
+                  />
                 </div>
               </motion.div>
 
@@ -262,8 +266,8 @@ const MobileNavigation = ({
         )}
       </AnimatePresence>
     </>
-  );
-};
+  )
+}
 
 // Desktop Navigation Item
 const NavItem = ({
@@ -273,11 +277,11 @@ const NavItem = ({
   setSelected,
   link,
 }: {
-  children: JSX.Element | JSX.Element[];
-  selected: boolean;
-  id: number;
-  setSelected: Dispatch<SetStateAction<number>>;
-  link: string;
+  children: JSX.Element | JSX.Element[]
+  selected: boolean
+  id: number
+  setSelected: Dispatch<SetStateAction<number>>
+  link: string
 }) => {
   return (
     <Link href={link}>
@@ -287,7 +291,7 @@ const NavItem = ({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <span className={`block relative z-10 ${selected ? 'text-white' : 'text-lavender-500'}`}>{children}</span>
+        <span className={`block relative z-10 ${selected ? "text-white" : "text-lavender-500"}`}>{children}</span>
         <AnimatePresence>
           {selected && (
             <motion.span
@@ -300,8 +304,8 @@ const NavItem = ({
         </AnimatePresence>
       </motion.button>
     </Link>
-  );
-};
+  )
+}
 
 // Mobile Navigation Item
 const MobileNavItem = ({
@@ -311,11 +315,11 @@ const MobileNavItem = ({
   setSelected,
   link,
 }: {
-  children: JSX.Element | JSX.Element[];
-  selected: boolean;
-  id: number;
-  setSelected: Dispatch<SetStateAction<number>>;
-  link: string;
+  children: JSX.Element | JSX.Element[]
+  selected: boolean
+  id: number
+  setSelected: Dispatch<SetStateAction<number>>
+  link: string
 }) => {
   return (
     <Link href={link}>
@@ -326,7 +330,9 @@ const MobileNavItem = ({
         whileTap={{ scale: 0.9 }}
         transition={{ type: "spring", stiffness: 400, damping: 17 }}
       >
-        <div className={`relative z-10 flex flex-col items-center ${selected ? 'text-lavender-600' : 'text-slate-500'}`}>
+        <div
+          className={`relative z-10 flex flex-col items-center ${selected ? "text-lavender-600" : "text-slate-500"}`}
+        >
           {children}
         </div>
         <AnimatePresence>
@@ -342,20 +348,20 @@ const MobileNavItem = ({
         </AnimatePresence>
       </motion.button>
     </Link>
-  );
-};
+  )
+}
 
 // Quick Link Button for Mobile Menu
-const QuickLinkButton = ({ 
-  icon, 
-  label, 
+const QuickLinkButton = ({
+  icon,
+  label,
   onClick,
-  link 
-}: { 
-  icon: JSX.Element; 
-  label: string; 
-  onClick: () => void;
-  link: string;
+  link,
+}: {
+  icon: JSX.Element
+  label: string
+  onClick: () => void
+  link: string
 }) => {
   return (
     <Link href={link} onClick={onClick}>
@@ -369,27 +375,27 @@ const QuickLinkButton = ({
         <span className="text-sm font-medium text-slate-700">{label}</span>
       </motion.div>
     </Link>
-  );
-};
+  )
+}
 
-// Auth Button Component 
-const AuthButton = ({ 
+// Auth Button Component
+const AuthButton = ({
   isMobile = false,
-  setMobileMenuOpen = () => {}
-}: { 
-  isMobile?: boolean,
+  setMobileMenuOpen = () => {},
+}: {
+  isMobile?: boolean
   setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>
 }) => {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthState(auth)
 
   const handleClick = () => {
     if (isMobile) {
-      setMobileMenuOpen(false);
+      setMobileMenuOpen(false)
     }
     if (user) {
-      signOut(auth);
+      signOut(auth)
     }
-  };
+  }
 
   if (user) {
     if (isMobile) {
@@ -400,8 +406,8 @@ const AuthButton = ({
               <FiUser size={24} className="text-lavender-500" />
             </div>
             <div>
-              <h3 className="font-medium text-slate-700">{user.displayName || 'User'}</h3>
-              <p className="text-sm text-slate-500 truncate max-w-full">{user.email || 'Signed In'}</p>
+              <h3 className="font-medium text-slate-700">{user.displayName || "User"}</h3>
+              <p className="text-sm text-slate-500 truncate max-w-full">{user.email || "Signed In"}</p>
             </div>
           </div>
           <motion.button
@@ -414,7 +420,7 @@ const AuthButton = ({
             <span>Sign Out</span>
           </motion.button>
         </div>
-      );
+      )
     } else {
       return (
         <motion.button
@@ -425,7 +431,7 @@ const AuthButton = ({
         >
           <FiLogOut />
         </motion.button>
-      );
+      )
     }
   } else {
     if (isMobile) {
@@ -451,7 +457,7 @@ const AuthButton = ({
             </motion.button>
           </Link>
         </div>
-      );
+      )
     } else {
       return (
         <Link href="/signin" onClick={() => isMobile && setMobileMenuOpen(false)}>
@@ -463,9 +469,9 @@ const AuthButton = ({
             <FiLogIn />
           </motion.button>
         </Link>
-      );
+      )
     }
   }
-};
+}
 
-export default ResponsiveNavigation;
+export default ResponsiveNavigation

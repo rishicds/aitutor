@@ -1,32 +1,33 @@
-"use client";
-import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebaseConfig";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
-import { getGeminiResponse } from "@/lib/gemini";
-import { ChatHeader } from "@/components/subject/ChatHeader";
-import { ChatInput } from "@/components/subject/ChatInput";
-import { Message } from "@/components/subject/Message";
+"use client"
+import type React from "react"
+import { useState, useEffect, useRef } from "react"
+import { useParams } from "next/navigation"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { auth, db } from "@/lib/firebaseConfig"
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore"
+import { getGeminiResponse } from "@/lib/gemini"
+import { ChatHeader } from "@/components/subject/ChatHeader"
+import { ChatInput } from "@/components/subject/ChatInput"
+import { Message } from "@/components/subject/Message"
 
 interface ChatMessage {
-  content: string;
-  isAi: boolean;
-  id: string;
+  content: string
+  isAi: boolean
+  id: string
 }
 
 interface QuestionSuggestions {
-  [key: string]: string[];
+  [key: string]: string[]
 }
 
 const SubjectPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [user] = useAuthState(auth);
-  const [question, setQuestion] = useState<string>("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [tokens, setTokens] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { id } = useParams<{ id: string }>()
+  const [user] = useAuthState(auth)
+  const [question, setQuestion] = useState<string>("")
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [tokens, setTokens] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Predefined question suggestions based on subjects
   const questionSuggestions: QuestionSuggestions = {
@@ -35,11 +36,7 @@ const SubjectPage: React.FC = () => {
       "What is the Pythagorean theorem?",
       "Can you explain calculus in simple terms?",
     ],
-    physics: [
-      "What is Newton's first law of motion?",
-      "How does gravity work?",
-      "Explain the concept of relativity.",
-    ],
+    physics: ["What is Newton's first law of motion?", "How does gravity work?", "Explain the concept of relativity."],
     cs: [
       "What is a binary search algorithm?",
       "How does recursion work in programming?",
@@ -60,65 +57,66 @@ const SubjectPage: React.FC = () => {
       "Can you summarize 'Pride and Prejudice'?",
       "What makes a poem effective?",
     ],
-  };
+  }
 
   useEffect(() => {
     const fetchTokens = async () => {
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userData = userDoc.data();
-        setTokens(userData?.tokens || 0);
+        const userDoc = await getDoc(doc(db, "users", user.uid))
+        const userData = userDoc.data()
+        setTokens(userData?.tokens || 0)
       }
-    };
-    fetchTokens();
-  }, [user]);
+    }
+    fetchTokens()
+  }, [user])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || tokens < 1 || !question.trim()) return;
+    e.preventDefault()
+    if (!user || tokens < 1 || !question.trim()) return
 
-    const userMessage: ChatMessage = { 
-      content: question, 
-      isAi: false, 
-      id: Date.now().toString() 
-    };
-    
-    setMessages((prev) => [...prev, userMessage]);
-    setQuestion("");
-    setLoading(true);
+    const userMessage: ChatMessage = {
+      content: question,
+      isAi: false,
+      id: Date.now().toString(),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setQuestion("")
+    setLoading(true)
 
     try {
-      {/* ignore below error while building */}
-
       const tutorParams: {
-        subject: string;
-        personality: "friendly" | "strict" | "neutral";
-        level: "beginner" | "intermediate" | "expert";
-        teachingStyle: "conceptual" | "example-based" | "problem-solving";
+        subject: string
+        personality: "friendly" | "strict" | "neutral"
+        level: "beginner" | "intermediate" | "expert"
+        teachingStyle: "conceptual" | "example-based" | "problem-solving"
       } = {
         subject: id as string,
         personality: "friendly",
         level: "intermediate",
-        teachingStyle: "example-based"
-      };
-      const aiResponse = await getGeminiResponse(question, tutorParams);
-      setMessages((prev) => [...prev, { 
-        content: aiResponse, 
-        isAi: true, 
-        id: Date.now().toString() 
-      }]);
+        teachingStyle: "example-based",
+      }
+      const aiResponse = await getGeminiResponse(question, tutorParams)
+      setMessages((prev) => [
+        ...prev,
+        {
+          content: aiResponse,
+          isAi: true,
+          id: Date.now().toString(),
+        },
+      ])
 
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", user.uid)
       await updateDoc(userRef, {
         tokens: increment(-5),
-      });
-      setTokens(tokens - 5);
+      })
+      setTokens(tokens - 5)
     } catch (error) {
-      console.error("Error getting AI response:", error);
+      console.error("Error getting AI response:", error)
       setMessages((prev) => [
         ...prev,
         {
@@ -126,10 +124,10 @@ const SubjectPage: React.FC = () => {
           isAi: true,
           id: Date.now().toString(),
         },
-      ]);
+      ])
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   return (
     <div className="min-h-screen text-black antialiased">
@@ -140,7 +138,7 @@ const SubjectPage: React.FC = () => {
           {messages.length === 0 ? (
             <div className="h-[calc(100vh-12rem)] flex flex-col items-center justify-center">
               <p className="text-gray-600 mb-4">No messages yet. Start by asking a question!</p>
-              
+
               {/* Suggested Questions */}
               {questionSuggestions[id as string] && (
                 <div className="bg-gray-200 p-4 rounded-lg shadow-md max-w-md">
@@ -180,7 +178,7 @@ const SubjectPage: React.FC = () => {
         subjectId={id as string}
       />
     </div>
-  );
-};
+  )
+}
 
-export default SubjectPage;
+export default SubjectPage

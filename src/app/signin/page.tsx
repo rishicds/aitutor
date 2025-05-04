@@ -1,10 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { 
-  signInWithEmailAndPassword, 
-  signInWithPopup, 
-  GoogleAuthProvider 
-} from "firebase/auth"
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
 import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebaseConfig"
 import { useRouter } from "next/navigation"
@@ -26,26 +22,26 @@ export default function SignIn() {
 
   // Validate form
   useEffect(() => {
-    setFormValid(email.includes('@') && email.includes('.') && password.length >= 6)
+    setFormValid(email.includes("@") && email.includes(".") && password.length >= 6)
   }, [email, password])
 
   // Update user data in Firestore
   const updateUserData = async (userId: string, userData: object) => {
     const userRef = doc(db, "users", userId)
     const userSnap = await getDoc(userRef)
-    
+
     if (userSnap.exists()) {
       // User exists, update data
       await updateDoc(userRef, {
         ...userData,
-        lastLogin: serverTimestamp()
+        lastLogin: serverTimestamp(),
       })
     } else {
       // New user, create document
       await setDoc(userRef, {
         ...userData,
         createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp()
+        lastLogin: serverTimestamp(),
       })
     }
   }
@@ -53,7 +49,7 @@ export default function SignIn() {
   // Handle success after authentication
   const handleAuthSuccess = async () => {
     setShowSuccessMessage(true)
-    
+
     // Delay redirect for animation
     setTimeout(() => {
       router.push("/dashboard")
@@ -65,7 +61,7 @@ export default function SignIn() {
     e.preventDefault()
     setLoading(true)
     setError("")
-    
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
@@ -74,7 +70,7 @@ export default function SignIn() {
       await updateUserData(user.uid, {
         email: user.email,
         displayName: user.displayName || null,
-        photoURL: user.photoURL || null
+        photoURL: user.photoURL || null,
       })
 
       await handleAuthSuccess()
@@ -103,11 +99,11 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
     setError("")
-    
+
     try {
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
-      
+
       // Get Google access token
       // const credential = GoogleAuthProvider.credentialFromResult(result)
       // const token = credential?.accessToken
@@ -117,7 +113,7 @@ export default function SignIn() {
         email: user.email,
         displayName: user.displayName,
         photoURL: user.photoURL,
-        authProvider: "google"
+        authProvider: "google",
       })
 
       await handleAuthSuccess()
@@ -145,15 +141,16 @@ export default function SignIn() {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-200 rounded-full opacity-30 transform -translate-x-1/3 translate-y-1/3 blur-3xl" />
         <div className="absolute top-1/4 left-1/4 w-40 h-40 bg-purple-300 rounded-full opacity-20 blur-2xl" />
       </div>
-      
+
       <div className="w-full max-w-md relative z-10">
         {/* Card with light effects */}
-        <div className={`p-8 space-y-6 bg-white/80 backdrop-blur-md rounded-xl shadow-xl border border-purple-100 transition-all duration-500 
-          ${showSuccessMessage ? 'scale-105 border-green-200 shadow-green-100' : ''}`}>
-          
+        <div
+          className={`p-8 space-y-6 bg-white/80 backdrop-blur-md rounded-xl shadow-xl border border-purple-100 transition-all duration-500 
+          ${showSuccessMessage ? "scale-105 border-green-200 shadow-green-100" : ""}`}
+        >
           {/* Top glow effect */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-300 via-purple-500 to-purple-300 rounded-t-xl" />
-          
+
           <div className="text-center relative">
             <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-purple-600 p-4 rounded-full shadow-lg">
               <User className="h-8 w-8 text-white" />
@@ -161,19 +158,23 @@ export default function SignIn() {
             <h1 className="text-4xl font-bold text-purple-800 mt-6">Welcome Back</h1>
             <p className="mt-2 text-sm text-purple-600">Sign in to access your account</p>
           </div>
-          
+
           {/* Success Message */}
           {showSuccessMessage && (
             <div className="p-4 rounded-lg bg-green-50 border border-green-200 animate-pulse">
               <p className="text-green-600 text-center font-medium flex items-center justify-center">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Sign-in successful! Redirecting...
               </p>
             </div>
           )}
-          
+
           {/* Error Message */}
           {error && (
             <div className="p-4 rounded-lg bg-red-50 border border-red-200 animate-shake">
@@ -183,12 +184,16 @@ export default function SignIn() {
               </p>
             </div>
           )}
-          
+
           <div className="mt-8 space-y-6">
             <div className="rounded-md space-y-4">
-              <div className={`relative transition-all duration-300 ${activeField === 'email' ? 'transform scale-105' : ''}`}>
+              <div
+                className={`relative transition-all duration-300 ${activeField === "email" ? "transform scale-105" : ""}`}
+              >
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Mail className={`h-5 w-5 transition-colors duration-300 ${activeField === 'email' ? 'text-purple-600' : 'text-purple-400'}`} />
+                  <Mail
+                    className={`h-5 w-5 transition-colors duration-300 ${activeField === "email" ? "text-purple-600" : "text-purple-400"}`}
+                  />
                 </div>
                 <input
                   id="email-address"
@@ -196,13 +201,13 @@ export default function SignIn() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setActiveField('email')}
+                  onFocus={() => setActiveField("email")}
                   onBlur={() => setActiveField(null)}
                   required
                   className="appearance-none w-full pl-10 pr-3 py-3 rounded-lg border border-purple-200 placeholder-purple-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
                   placeholder="Email address"
                 />
-                {email && email.includes('@') && email.includes('.') && (
+                {email && email.includes("@") && email.includes(".") && (
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                     <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -210,10 +215,14 @@ export default function SignIn() {
                   </div>
                 )}
               </div>
-              
-              <div className={`relative transition-all duration-300 ${activeField === 'password' ? 'transform scale-105' : ''}`}>
+
+              <div
+                className={`relative transition-all duration-300 ${activeField === "password" ? "transform scale-105" : ""}`}
+              >
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Lock className={`h-5 w-5 transition-colors duration-300 ${activeField === 'password' ? 'text-purple-600' : 'text-purple-400'}`} />
+                  <Lock
+                    className={`h-5 w-5 transition-colors duration-300 ${activeField === "password" ? "text-purple-600" : "text-purple-400"}`}
+                  />
                 </div>
                 <input
                   id="password"
@@ -221,7 +230,7 @@ export default function SignIn() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setActiveField('password')}
+                  onFocus={() => setActiveField("password")}
                   onBlur={() => setActiveField(null)}
                   required
                   className="appearance-none w-full pl-10 pr-10 py-3 rounded-lg border border-purple-200 placeholder-purple-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
@@ -250,7 +259,10 @@ export default function SignIn() {
                     className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-purple-300 rounded opacity-0 absolute"
                   />
                   <div className="bg-white border-2 rounded border-purple-400 w-4 h-4 flex flex-shrink-0 justify-center items-center mr-2 focus-within:border-purple-600">
-                    <svg className="fill-current hidden w-3 h-3 text-purple-600 pointer-events-none" viewBox="0 0 20 20">
+                    <svg
+                      className="fill-current hidden w-3 h-3 text-purple-600 pointer-events-none"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M0 11l2-2 5 5L18 3l2 2L7 18z" />
                     </svg>
                   </div>
@@ -271,13 +283,29 @@ export default function SignIn() {
               <button
                 onClick={handleEmailSignIn}
                 disabled={loading || !formValid}
-                className={`group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-medium rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all ${formValid ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-400 cursor-not-allowed'}`}
+                className={`group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-medium rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all ${formValid ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-400 cursor-not-allowed"}`}
               >
                 {loading ? (
                   <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Signing in...
                   </span>
@@ -290,16 +318,19 @@ export default function SignIn() {
               </button>
             </div>
           </div>
-          
+
           <div className="pt-4 text-center">
             <p className="text-sm text-purple-600">
               Don&aptos;t have an account?{" "}
-                <a href="/signup" className="font-medium text-purple-800 hover:text-purple-900 cursor-pointer hover:underline transition-all">
+              <a
+                href="/signup"
+                className="font-medium text-purple-800 hover:text-purple-900 cursor-pointer hover:underline transition-all"
+              >
                 Sign up now
-                </a>
+              </a>
             </p>
           </div>
-          
+
           {/* Social login options */}
           <div className="mt-6">
             <div className="relative">
@@ -310,38 +341,54 @@ export default function SignIn() {
                 <span className="px-2 bg-white text-purple-500">Or continue with</span>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-center">
-              <button 
+              <button
                 className="py-3 px-6 border border-purple-200 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer transition-all flex items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading}
               >
                 {googleLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     <span>Connecting...</span>
                   </>
                 ) : (
                   <>
                     <svg width="20" height="20" viewBox="0 0 24 24">
-                      <path 
-                        fill="#4285F4" 
+                      <path
+                        fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                       />
-                      <path 
-                        fill="#34A853" 
+                      <path
+                        fill="#34A853"
                         d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                       />
-                      <path 
-                        fill="#FBBC05" 
+                      <path
+                        fill="#FBBC05"
                         d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                       />
-                      <path 
-                        fill="#EA4335" 
+                      <path
+                        fill="#EA4335"
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                       />
                     </svg>
@@ -352,15 +399,15 @@ export default function SignIn() {
             </div>
           </div>
         </div>
-        
+
         {/* Card reflection effect */}
         <div className="absolute -bottom-4 left-4 right-4 h-8 bg-purple-100/30 backdrop-blur-sm rounded-bl-lg rounded-br-lg transform skew-x-6 z-0 blur-sm" />
       </div>
-      
+
       {/* Animated stars/sparkles (subtle) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
-          <div 
+          <div
             key={i}
             className="absolute w-1 h-1 bg-purple-300 rounded-full animate-pulse"
             style={{
@@ -368,12 +415,12 @@ export default function SignIn() {
               left: `${Math.random() * 100}%`,
               opacity: 0.3 + Math.random() * 0.4,
               animationDuration: `${1 + Math.random() * 3}s`,
-              animationDelay: `${Math.random() * 2}s`
+              animationDelay: `${Math.random() * 2}s`,
             }}
           />
         ))}
       </div>
-      
+
       {/* Hidden keyframe animations */}
       <style jsx>{`
         @keyframes float {

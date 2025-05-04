@@ -7,9 +7,9 @@ import Link from "next/link"
 import SearchBar from "@/components/shared/SearchBar"
 import TokenDisplay from "@/components/TokenDisplay"
 import SubjectCard from "@/components/SubjectCard"
-import {auth, db} from "@/lib/firebaseConfig"
-import { Coins, Book, Filter, Plus, X } from 'lucide-react'
-import {motion, AnimatePresence} from "framer-motion"
+import { auth, db } from "@/lib/firebaseConfig"
+import { Coins, Book, Filter, Plus, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 const subjects = [
   // JEE subjects
@@ -56,9 +56,10 @@ export default function Dashboard() {
     fetchTokens()
   }, [user])
 
-  const filteredSubjects = subjects.filter((subject) =>
-    subject.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (selectedCategory === "All" || subject.category === selectedCategory)
+  const filteredSubjects = subjects.filter(
+    (subject) =>
+      subject.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedCategory === "All" || subject.category === selectedCategory),
   )
 
   const categories = ["All", "JEE", "NEET", "BTech CSE", "General"]
@@ -66,13 +67,13 @@ export default function Dashboard() {
   const openModal = () => {
     setIsModalOpen(true)
     // Prevent scrolling when modal is open
-    document.body.style.overflow = 'hidden'
+    document.body.style.overflow = "hidden"
   }
 
   const closeModal = () => {
     setIsModalOpen(false)
     // Re-enable scrolling
-    document.body.style.overflow = 'auto'
+    document.body.style.overflow = "auto"
   }
 
   // Create Your Own Tutor Card Component
@@ -94,17 +95,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <div className="container mx-auto px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-5xl font-bold text-gray-800 mb-4">
-            AI Tutor Dashboard
-          </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Personalized learning powered by artificial intelligence
-          </p>
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-800 mb-4">AI Tutor Dashboard</h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">Personalized learning powered by artificial intelligence</p>
         </motion.div>
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
@@ -151,7 +144,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -160,7 +153,7 @@ export default function Dashboard() {
           {filteredSubjects.map((subject, index) => (
             <SubjectCard key={subject.id} subject={subject} index={index} />
           ))}
-          
+
           {/* Create Your Own Tutor Card */}
           <CreateYourOwnTutorCard />
         </motion.div>
@@ -184,7 +177,6 @@ export default function Dashboard() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
-                
                 <button
                   onClick={closeModal}
                   className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -192,10 +184,8 @@ export default function Dashboard() {
                   <X size={24} />
                 </button>
               </div>
-              
-              <div className="mb-6">
-               
-              </div>
+
+              <div className="mb-6"></div>
             </motion.div>
           </motion.div>
         )}
