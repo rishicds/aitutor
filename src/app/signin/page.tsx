@@ -109,8 +109,8 @@ export default function SignIn() {
       const user = result.user
       
       // Get Google access token
-      const credential = GoogleAuthProvider.credentialFromResult(result)
-      const token = credential?.accessToken
+      // const credential = GoogleAuthProvider.credentialFromResult(result)
+      // const token = credential?.accessToken
 
       // Update user data in Firestore
       await updateUserData(user.uid, {
@@ -293,7 +293,7 @@ export default function SignIn() {
           
           <div className="pt-4 text-center">
             <p className="text-sm text-purple-600">
-              Don't have an account?{" "}
+              Don&aptos;t have an account?{" "}
                 <a href="/signup" className="font-medium text-purple-800 hover:text-purple-900 cursor-pointer hover:underline transition-all">
                 Sign up now
                 </a>

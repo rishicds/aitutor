@@ -94,8 +94,8 @@ export default function SignUp() {
       const user = result.user
       
       // Get Google access token
-      const credential = GoogleAuthProvider.credentialFromResult(result)
-      const token = credential?.accessToken
+      // const credential = GoogleAuthProvider.credentialFromResult(result)
+      // const token = credential?.accessToken
       
       // Check if user already exists
       const userRef = doc(db, "users", user.uid)

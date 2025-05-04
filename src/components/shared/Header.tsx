@@ -51,7 +51,7 @@ const ResponsiveNavigation = () => {
 
 const DesktopSideNav = () => {
   const [selected, setSelected] = useState(0);
-  const [user] = useAuthState(auth);
+  // const [user] = useAuthState(auth);
 
   return (
     <div className="fixed left-0 top-0 h-screen bg-white text-slate-700 shadow-lg z-50">

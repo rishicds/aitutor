@@ -350,7 +350,7 @@ export default function PurchaseTokens() {
           </div>
           <div>
             <h3 className="text-lg font-medium mb-2 text-black">How do I track my token usage?</h3>
-            <p className="text-gray-600">You can monitor your token usage in the dashboard under the "Usage" section.</p>
+            <p className="text-gray-600">You can monitor your token usage in the dashboard under the &aptos;Usage&aptos; section.</p>
           </div>
         </div>
       </div>
