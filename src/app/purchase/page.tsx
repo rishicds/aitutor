@@ -136,57 +136,57 @@ export default function PurchaseTokens() {
         </div>
       )}
 
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-lavender-400 to-lavender-700 bg-clip-text text-transparent">
+      <div className="text-center mb-8 sm:mb-12">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-lavender-400 to-lavender-700 bg-clip-text text-transparent">
           Power Up Your Experience
         </h1>
-        <p className="text-xl max-w-2xl mx-auto text-black">
+        <p className="text-lg sm:text-xl max-w-2xl mx-auto text-black">
           Purchase tokens to unlock the full potential of our AI services. More tokens, more possibilities.
         </p>
       </div>
 
       {user && (
         <div className="flex justify-center mb-8">
-          <div className="white-card px-8 py-4 flex items-center space-x-4 rounded-full shadow-md">
-            <div className="h-12 w-12 bg-gradient-to-r from-lavender-400 to-lavender-600 rounded-full flex items-center justify-center">
-              <Zap className="h-6 w-6 text-white" />
+          <div className="white-card px-4 sm:px-8 py-4 flex items-center space-x-4 rounded-full shadow-md w-full max-w-md">
+            <div className="h-10 sm:h-12 w-10 sm:w-12 bg-gradient-to-r from-lavender-400 to-lavender-600 rounded-full flex items-center justify-center">
+              <Zap className="h-5 sm:h-6 w-5 sm:w-6 text-white" />
             </div>
             <div>
-              <p className="text-black">Current Balance</p>
-              <p className="text-2xl font-bold text-black">{currentTokens} Tokens</p>
+              <p className="text-sm sm:text-base text-black">Current Balance</p>
+              <p className="text-xl sm:text-2xl font-bold text-black">{currentTokens} Tokens</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
         {tokenPackages.map((pkg) => (
           <div
             key={pkg.id}
-            className={`white-card p-6 rounded-xl transition-all duration-300 transform hover:scale-105 cursor-pointer ${
+            className={`white-card p-4 sm:p-6 rounded-xl transition-all duration-300 transform hover:scale-105 cursor-pointer ${
               selectedPackage.id === pkg.id ? "ring-2 ring-lavender-500 shadow-lg shadow-lavender-200" : ""
             }`}
             onClick={() => setSelectedPackage(pkg)}
           >
             <div
-              className={`h-16 w-16 rounded-full bg-gradient-to-r ${pkg.color} flex items-center justify-center mb-4`}
+              className={`h-12 sm:h-16 w-12 sm:w-16 rounded-full bg-gradient-to-r ${pkg.color} flex items-center justify-center mb-4`}
             >
               {pkg.icon}
             </div>
             <div className="flex items-baseline mb-2">
-              <h2 className="text-2xl font-bold text-black">{pkg.tokens}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-black">{pkg.tokens}</h2>
               <span className="ml-2 text-gray-600">Tokens</span>
             </div>
-            <div className="flex items-baseline mb-6">
+            <div className="flex items-baseline mb-4 sm:mb-6">
               <span className="text-gray-600 text-sm">₹</span>
-              <p className="text-3xl font-bold text-black">{pkg.price / 100}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-black">{pkg.price / 100}</p>
               <span className="ml-2 text-gray-600 text-xs">INR</span>
             </div>
-            <ul className="space-y-2 mb-6">
+            <ul className="space-y-1 sm:space-y-2 mb-4 sm:mb-6">
               {pkg.perks.map((perk, i) => (
                 <li key={i} className="flex items-center">
-                  <Check className="h-4 w-4 mr-2 text-lavender-600" />
-                  <span className="text-sm text-black">{perk}</span>
+                  <Check className="h-4 w-4 mr-2 text-lavender-600 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-black">{perk}</span>
                 </li>
               ))}
             </ul>
@@ -207,21 +207,24 @@ export default function PurchaseTokens() {
         ))}
       </div>
 
-      <div className="white-card p-8 rounded-xl mb-12 shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-black">Payment Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
+      <div className="white-card p-4 sm:p-6 md:p-8 rounded-xl mb-8 sm:mb-12 shadow-md">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-black">Payment Details</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-medium mb-2 text-black">Coupon Code</label>
-              <div className="flex">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
                 <input
                   type="text"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   placeholder="Enter coupon code"
-                  className="flex-grow bg-lavender-50 rounded-l-lg p-3 focus:outline-none focus:ring-1 focus:ring-lavender-500 text-black border border-lavender-200"
+                  className="flex-grow bg-lavender-50 sm:rounded-l-lg rounded-lg sm:rounded-r-none p-3 focus:outline-none focus:ring-1 focus:ring-lavender-500 text-black border border-lavender-200"
                 />
-                <button onClick={applyCoupon} className="bg-lavender-500 px-4 rounded-r-lg text-white">
+                <button
+                  onClick={applyCoupon}
+                  className="bg-lavender-500 px-4 py-3 sm:py-0 rounded-lg sm:rounded-l-none sm:rounded-r-lg text-white"
+                >
                   Apply
                 </button>
               </div>
@@ -230,7 +233,7 @@ export default function PurchaseTokens() {
 
             <div>
               <label className="block text-sm font-medium mb-2 text-black">Payment Method</label>
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                 <div className="flex-1 bg-lavender-50 p-4 rounded-lg border border-lavender-200 flex items-center space-x-3 cursor-pointer">
                   <CreditCard className="h-5 w-5 text-lavender-600" />
                   <span className="text-black">Credit Card</span>
@@ -242,7 +245,7 @@ export default function PurchaseTokens() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex justify-between">
                 <span className="text-gray-600">Selected Package</span>
                 <span className="text-black">{selectedPackage.tokens} Tokens</span>
@@ -267,9 +270,9 @@ export default function PurchaseTokens() {
           </div>
 
           <div className="flex flex-col">
-            <div className="bg-lavender-50 p-6 rounded-xl mb-6 flex-grow border border-lavender-100">
-              <h3 className="text-lg font-medium mb-4 text-black">Order Summary</h3>
-              <div className="space-y-4">
+            <div className="bg-lavender-50 p-4 sm:p-6 rounded-xl mb-4 sm:mb-6 flex-grow border border-lavender-100">
+              <h3 className="text-md sm:text-lg font-medium mb-3 sm:mb-4 text-black">Order Summary</h3>
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex justify-between">
                   <span className="text-black">{selectedPackage.tokens} Tokens</span>
                   <span className="text-black">₹{selectedPackage.price / 100}</span>
@@ -280,7 +283,7 @@ export default function PurchaseTokens() {
                     <span>-₹{((selectedPackage.price * discount) / 100 / 100).toFixed(0)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-lavender-200 pt-4 font-bold">
+                <div className="flex justify-between border-t border-lavender-200 pt-3 sm:pt-4 font-bold">
                   <span className="text-black">Total</span>
                   <span className="text-black">₹{(calculateFinalPrice() / 100).toFixed(0)}</span>
                 </div>
@@ -290,7 +293,7 @@ export default function PurchaseTokens() {
             <button
               onClick={handlePurchase}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-lavender-400 to-lavender-600 py-4 px-6 rounded-lg font-bold text-white flex items-center justify-center transition-all duration-300 hover:opacity-90 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-lavender-400 to-lavender-600 py-3 sm:py-4 px-4 sm:px-6 rounded-lg font-bold text-white flex items-center justify-center transition-all duration-300 hover:opacity-90 disabled:opacity-50"
             >
               {loading ? (
                 <div className="flex items-center">
@@ -302,64 +305,68 @@ export default function PurchaseTokens() {
               )}
             </button>
 
-            <div className="flex items-center justify-center mt-4 text-sm text-gray-600">
-              <Clock className="h-4 w-4 mr-2" />
+            <div className="flex items-center justify-center mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600">
+              <Clock className="h-3 sm:h-4 w-3 sm:w-4 mr-2" />
               <span>Processing time: Instant activation</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="white-card p-6 rounded-xl flex flex-col items-center text-center shadow-md">
-          <div className="h-12 w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-4">
-            <Zap className="h-6 w-6 text-lavender-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
+        <div className="white-card p-4 sm:p-6 rounded-xl flex flex-col items-center text-center shadow-md">
+          <div className="h-10 sm:h-12 w-10 sm:w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+            <Zap className="h-5 sm:h-6 w-5 sm:w-6 text-lavender-600" />
           </div>
-          <h3 className="text-xl font-bold mb-2 text-black">Instant Activation</h3>
-          <p className="text-gray-600">Tokens are added to your account immediately after purchase</p>
+          <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 text-black">Instant Activation</h3>
+          <p className="text-sm sm:text-base text-gray-600">
+            Tokens are added to your account immediately after purchase
+          </p>
         </div>
 
-        <div className="white-card p-6 rounded-xl flex flex-col items-center text-center shadow-md">
-          <div className="h-12 w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-4">
-            <ShieldCheck className="h-6 w-6 text-lavender-600" />
+        <div className="white-card p-4 sm:p-6 rounded-xl flex flex-col items-center text-center shadow-md">
+          <div className="h-10 sm:h-12 w-10 sm:w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+            <ShieldCheck className="h-5 sm:h-6 w-5 sm:w-6 text-lavender-600" />
           </div>
-          <h3 className="text-xl font-bold mb-2 text-black">Secure Transactions</h3>
-          <p className="text-gray-600">All payments are processed securely through Razorpay</p>
+          <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 text-black">Secure Transactions</h3>
+          <p className="text-sm sm:text-base text-gray-600">All payments are processed securely through Razorpay</p>
         </div>
 
-        <div className="white-card p-6 rounded-xl flex flex-col items-center text-center shadow-md">
-          <div className="h-12 w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-4">
-            <Star className="h-6 w-6 text-lavender-600" />
+        <div className="white-card p-4 sm:p-6 rounded-xl flex flex-col items-center text-center shadow-md">
+          <div className="h-10 sm:h-12 w-10 sm:w-12 bg-lavender-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+            <Star className="h-5 sm:h-6 w-5 sm:w-6 text-lavender-600" />
           </div>
-          <h3 className="text-xl font-bold mb-2 text-black">Premium Support</h3>
-          <p className="text-gray-600">Get priority assistance with any larger token packages</p>
+          <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 text-black">Premium Support</h3>
+          <p className="text-sm sm:text-base text-gray-600">Get priority assistance with any larger token packages</p>
         </div>
       </div>
 
-      <div className="white-card p-8 rounded-xl shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-black">Frequently Asked Questions</h2>
-        <div className="space-y-4">
+      <div className="white-card p-4 sm:p-8 rounded-xl shadow-md">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-black">Frequently Asked Questions</h2>
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <h3 className="text-lg font-medium mb-2 text-black">What are tokens used for?</h3>
-            <p className="text-gray-600">
+            <h3 className="text-md sm:text-lg font-medium mb-1 sm:mb-2 text-black">What are tokens used for?</h3>
+            <p className="text-sm sm:text-base text-gray-600">
               Tokens are used to access our AI services. Each API request consumes a certain number of tokens depending
               on complexity.
             </p>
           </div>
           <div>
-            <h3 className="text-lg font-medium mb-2 text-black">Do tokens expire?</h3>
-            <p className="text-gray-600">No, your purchased tokens never expire and can be used at any time.</p>
+            <h3 className="text-md sm:text-lg font-medium mb-1 sm:mb-2 text-black">Do tokens expire?</h3>
+            <p className="text-sm sm:text-base text-gray-600">
+              No, your purchased tokens never expire and can be used at any time.
+            </p>
           </div>
           <div>
-            <h3 className="text-lg font-medium mb-2 text-black">Can I get a refund?</h3>
-            <p className="text-gray-600">
+            <h3 className="text-md sm:text-lg font-medium mb-1 sm:mb-2 text-black">Can I get a refund?</h3>
+            <p className="text-sm sm:text-base text-gray-600">
               Tokens are non-refundable once purchased. Please contact support for special circumstances.
             </p>
           </div>
           <div>
-            <h3 className="text-lg font-medium mb-2 text-black">How do I track my token usage?</h3>
-            <p className="text-gray-600">
-              You can monitor your token usage in the dashboard under the &aptos;Usage&aptos; section.
+            <h3 className="text-md sm:text-lg font-medium mb-1 sm:mb-2 text-black">How do I track my token usage?</h3>
+            <p className="text-sm sm:text-base text-gray-600">
+              You can monitor your token usage in the dashboard under the  &aptos; Usage &aptos; section.
             </p>
           </div>
         </div>

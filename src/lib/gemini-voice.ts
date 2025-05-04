@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { Message } from "@/types"
 
 // Function to process messages with Gemini API

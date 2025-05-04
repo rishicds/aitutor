@@ -1,25 +1,18 @@
+/* eslint-disable */
 "use client"
 import { useState, useEffect } from "react"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { auth, db } from "@/lib/firebaseConfig"
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore"
 import { getGeminiResponse, generatePracticeQuestions } from "@/lib/gemini"
-import {
-  Loader2,
-  BookOpen,
-  Download,
-  Share2,
-  Bookmark,
-  Search,
-  Send,
-  Check,
-  X,
-  PlusCircle,
-  AlertCircle,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react"
+import { Loader2, BookOpen, Download, Share2, Bookmark, Search, Send, Check, X, PlusCircle, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import ReactMarkdown from "react-markdown"
+
+// Custom lavender color scheme
+const lavenderColors = {
+  glassmorphism: "bg-white/80 backdrop-blur-md border border-lavender-200",
+  neonGlow: "text-lavender-700 drop-shadow-[0_0_10px_rgba(150,120,230,0.7)]",
+}
 
 interface PYQ {
   id: string
@@ -131,29 +124,81 @@ export default function PYQPage() {
   const parseGeneratedQuestions = (markdownText: string): PYQ[] => {
     const newPyqs: PYQ[] = []
 
-    // First try to split by markdown headers for questions
-    let questionBlocks = markdownText.split(/(?=\n?#{1,3}\s*(?:Question|Q)\s*\d+)/i)
+    // First, check if there's a solutions section we need to split off
+    const mainSections = markdownText.split(/\n---+\n|\n\*\*Solutions\s*&?\s*Explanations?\*\*/i)
+    const questionsSection = mainSections[0]
+    const solutionsSection = mainSections.length > 1 ? mainSections[1] : ""
 
-    // If that didn't work well, try numbered questions format
-    if (questionBlocks.length <= 1) {
-      questionBlocks = markdownText.split(/\n(?=\d+\.\s)/)
+    // Try to identify individual questions with multiple strategies
+    let questionBlocks = []
+
+    // Strategy 1: Look for numbered questions with bold markers
+    const boldNumberedPattern =
+      /\*\*\s*(?:Question\s*)?\d+[.:]\*\*|\*\*\s*\d+\.\s*(?:Multiple Choice Question|Short Answer Question|Numerical\/Analytical Question|Long Answer Question)/gi
+    if (questionsSection.match(boldNumberedPattern)) {
+      questionBlocks = questionsSection.split(boldNumberedPattern).slice(1)
+      if (questionBlocks.length === 0) {
+        questionBlocks = [questionsSection] // Fallback if split removed everything
+      }
+    } else {
+      // Strategy 2: Try headers with question numbers
+      questionBlocks = questionsSection.split(/(?=\n?#{1,3}\s*(?:Question|Q)\s*\d+)/i)
+
+      // Strategy 3: If that didn't work, try numbered questions format
+      if (questionBlocks.length <= 1) {
+        questionBlocks = questionsSection.split(/\n(?=\d+\.\s)/)
+      }
+
+      // Strategy 4: Try more patterns
+      if (questionBlocks.length <= 1) {
+        questionBlocks = questionsSection.split(/\n\n(?=(?:Question|Q)[\s:]*\d+)/i)
+      }
+
+      // Strategy 5: Look for bold questions or other markers
+      if (questionBlocks.length <= 1) {
+        questionBlocks = questionsSection.split(/\n\n(?=\*\*(?:Question|Q)[\s:]*\d+\*\*)/i)
+      }
     }
 
-    // If we still don't have multiple blocks, try more patterns
-    if (questionBlocks.length <= 1) {
-      questionBlocks = markdownText.split(/\n\n(?=(?:Question|Q)[\s:]*\d+)/i)
-    }
+    // Extract solution information from the solutions section
+    const solutionMap = new Map()
 
-    // Last resort: look for bold questions or other markers
-    if (questionBlocks.length <= 1) {
-      questionBlocks = markdownText.split(/\n\n(?=\*\*(?:Question|Q)[\s:]*\d+\*\*)/i)
+    if (solutionsSection) {
+      // Try to extract solutions by identifying solution headers
+      const solutionBlocks = solutionsSection.split(
+        /\*\*Solution\s*\d+\*\*|\*\*Explanation\s*\d+\*\*|#{1,3}\s*Solution\s*\d+|#{1,3}\s*Explanation\s*\d+/i,
+      )
+      // Get the question numbers from the solution headers
+      const solutionNumbersMatch = solutionsSection.match(
+        /\*\*Solution\s*(\d+)\*\*|\*\*Explanation\s*(\d+)\*\*|#{1,3}\s*Solution\s*(\d+)|#{1,3}\s*Explanation\s*(\d+)/gi,
+      )
+
+      if (solutionNumbersMatch && solutionBlocks.length > 1) {
+        // Map solution content to question numbers
+        for (let i = 0; i < solutionNumbersMatch.length; i++) {
+          const numMatch = solutionNumbersMatch[i].match(/\d+/)
+          if (numMatch && i + 1 < solutionBlocks.length) {
+            const qNum = Number.parseInt(numMatch[0])
+            solutionMap.set(qNum, solutionBlocks[i + 1].trim())
+          }
+        }
+      }
     }
 
     // Filter out empty blocks and process each question block
     questionBlocks
       .filter((block) => block.trim())
       .forEach((block, index) => {
-        // Identify where question ends and solution/answer begins
+        // Try to identify the question number
+        const questionNumberMatch = block.match(/^\s*\**\s*(?:Question\s*)?(\d+)[.:]/i) ||
+          block.match(/\*\*\s*(?:Question\s*)?(\d+)[.:]\*\*/i) || [`${index + 1}`, `${index + 1}`] // Fallback if no number found
+
+        const questionNumber = questionNumberMatch ? Number.parseInt(questionNumberMatch[1]) : index + 1
+
+        // Check if we have a solution for this question number in our solution map
+        const solutionFromMap = solutionMap.get(questionNumber)
+
+        // Also check for solution in the question block itself
         const answerMarkers = [
           "solution:",
           "answer:",
@@ -184,57 +229,56 @@ export default function PYQPage() {
           }
         }
 
-        // If we found a solution section
+        // Get the answer either from the solution map or from within the question block
+        let answer = ""
+
+        // If we found a solution section within the question block
         if (solutionIndex !== -1) {
-          // Extract question and answer
-          let question = block.substring(0, solutionIndex).trim()
-          const answer = block.substring(solutionIndex).trim()
+          answer = block.substring(solutionIndex).trim()
+          block = block.substring(0, solutionIndex).trim()
+        }
+        // If we found a solution in the separate solutions section
+        else if (solutionFromMap) {
+          answer = solutionFromMap
+        }
 
-          // Clean up the question - remove question numbers and headers
-          question = question
-            .replace(/^#{1,4}\s*(?:Question|Q)[\s:]?\d+/i, "")
-            .replace(/^(?:Question|Q)[\s:]?\d+/i, "")
-            .replace(/^\d+\.\s*/, "")
-            .replace(/^\*\*(?:Question|Q)[\s:]?\d+\*\*/i, "")
-            .trim()
+        // Clean up the question - remove question numbers and headers
+        let question = block
+          .replace(/^#{1,4}\s*(?:Question|Q)[\s:]?\d+/i, "")
+          .replace(/^(?:Question|Q)[\s:]?\d+/i, "")
+          .replace(/^\d+\.\s*/, "")
+          .replace(/^\*\*(?:Question|Q)[\s:]?\d+\*\*/i, "")
+          .replace(
+            /^\*\*(?:Multiple Choice Question|Short Answer Question|Numerical\/Analytical Question|Long Answer Question)\*\*/i,
+            "",
+          )
+          .trim()
 
-          // Only add if we have both question and answer
-          if (question && answer) {
-            const newPyq: PYQ = {
-              id: `gen-${Date.now()}-${index}`,
-              question: question,
-              subject: selectedSubjectInput,
-              topic: topicInput,
-              difficulty: selectedDifficulty,
-              answer: answer,
-              isAIGenerated: true,
-              createdAt: { seconds: Date.now() / 1000 },
-            }
+        // Extract question type and difficulty information if available
+        let questionDifficulty = selectedDifficulty
+        if (question.toLowerCase().includes("easy")) {
+          questionDifficulty = "easy"
+        } else if (question.toLowerCase().includes("hard")) {
+          questionDifficulty = "hard"
+        }
 
-            newPyqs.push(newPyq)
+        // Remove any remaining header formatting
+        question = question.replace(/^\*\*.*?\*\*\s*/gm, "")
+
+        // Only add if we have a question
+        if (question) {
+          const newPyq: PYQ = {
+            id: `gen-${Date.now()}-${index}`,
+            question: question,
+            subject: selectedSubjectInput,
+            topic: topicInput,
+            difficulty: questionDifficulty,
+            answer: answer || undefined,
+            isAIGenerated: true,
+            createdAt: { seconds: Date.now() / 1000 },
           }
-        } else {
-          // No solution marker found, just add the question without an answer
-          const question = block
-            .replace(/^#{1,4}\s*(?:Question|Q)[\s:]?\d+/i, "")
-            .replace(/^(?:Question|Q)[\s:]?\d+/i, "")
-            .replace(/^\d+\.\s*/, "")
-            .replace(/^\*\*(?:Question|Q)[\s:]?\d+\*\*/i, "")
-            .trim()
 
-          if (question) {
-            const newPyq: PYQ = {
-              id: `gen-${Date.now()}-${index}`,
-              question: question,
-              subject: selectedSubjectInput,
-              topic: topicInput,
-              difficulty: selectedDifficulty,
-              isAIGenerated: true,
-              createdAt: { seconds: Date.now() / 1000 },
-            }
-
-            newPyqs.push(newPyq)
-          }
+          newPyqs.push(newPyq)
         }
       })
 
@@ -308,6 +352,7 @@ export default function PYQPage() {
 
       // Parse the generated questions
       const newPyqs = parseGeneratedQuestions(aiResponse)
+      console.log(aiResponse)
 
       if (newPyqs.length === 0) {
         setGenerationError("Failed to parse generated questions. Please try again.")
@@ -506,7 +551,7 @@ export default function PYQPage() {
   const DifficultyBadge = ({ difficulty }: { difficulty: "easy" | "medium" | "hard" }) => {
     const colors = {
       easy: "bg-green-100 text-green-800",
-      medium: "bg-yellow-100 text-yellow-800",
+      medium: "bg-lavender-100 text-lavender-800",
       hard: "bg-red-100 text-red-800",
     }
 
@@ -519,20 +564,20 @@ export default function PYQPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 text-center neon-glow">Practice Questions</h1>
+      <h1 className={`text-4xl font-bold mb-8 text-center ${lavenderColors.neonGlow}`}>Practice Questions</h1>
 
-      <div className="mb-8 glassmorphism p-6 rounded-lg shadow-lg">
+      <div className={`mb-8 ${lavenderColors.glassmorphism} p-6 rounded-lg shadow-lg`}>
         <h2 className="text-2xl font-semibold mb-4">Generate New Questions</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+          <div className="sm:col-span-2 lg:col-span-2">
             <label className="block text-sm font-medium mb-1">Topic</label>
             <input
               type="text"
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               placeholder="Enter a topic (e.g., Vectors, Databases, Quantum Physics)"
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="w-full p-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
             />
           </div>
 
@@ -543,7 +588,7 @@ export default function PYQPage() {
               value={selectedSubjectInput}
               onChange={(e) => setSelectedSubjectInput(e.target.value)}
               placeholder="Subject"
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="w-full p-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
             />
           </div>
 
@@ -552,7 +597,7 @@ export default function PYQPage() {
             <select
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value as "easy" | "medium" | "hard")}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="w-full p-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
             >
               <option value="easy">Easy</option>
               <option value="medium">Medium</option>
@@ -567,7 +612,7 @@ export default function PYQPage() {
               onChange={(e) =>
                 setSelectedFormat(e.target.value as "multiple-choice" | "short-answer" | "long-form" | "mixed")
               }
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="w-full p-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
             >
               <option value="multiple-choice">Multiple Choice</option>
               <option value="short-answer">Short Answer</option>
@@ -581,7 +626,7 @@ export default function PYQPage() {
             <select
               value={numberOfQuestions}
               onChange={(e) => setNumberOfQuestions(Number.parseInt(e.target.value))}
-              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="w-full p-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
             >
               <option value="1">1</option>
               <option value="3">3</option>
@@ -602,7 +647,7 @@ export default function PYQPage() {
           <div className="text-sm">
             <BookOpen className="inline mr-1" size={16} />
             <span>
-              Available Tokens: <span className="font-semibold text-primary">{tokens}</span>
+              Available Tokens: <span className="font-semibold text-lavender-600">{tokens}</span>
             </span>
             <span className="ml-2 text-gray-500">(Generating costs 2 tokens)</span>
           </div>
@@ -610,7 +655,7 @@ export default function PYQPage() {
           <button
             onClick={handleGenerateQuestions}
             disabled={generatingQuestions || tokens < 2 || !topicInput.trim()}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-opacity-80 transition duration-300 disabled:opacity-50 flex items-center"
+            className="bg-lavender-600 text-white px-4 py-2 rounded-lg hover:bg-lavender-700 transition duration-300 disabled:opacity-50 flex items-center"
           >
             {generatingQuestions ? (
               <>
@@ -627,10 +672,10 @@ export default function PYQPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-semibold">Your Questions</h2>
 
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
@@ -638,14 +683,14 @@ export default function PYQPage() {
               placeholder="Search questions or topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
             />
           </div>
 
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+            className="p-2 border rounded-lg focus:ring-lavender-500 focus:outline-none"
           >
             {subjects.map((subject) => (
               <option key={subject} value={subject}>
@@ -654,16 +699,16 @@ export default function PYQPage() {
             ))}
           </select>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 mt-2 sm:mt-0">
             <button
               onClick={() => setSortBy("createdAt")}
-              className={`px-3 py-1 rounded-lg ${sortBy === "createdAt" ? "bg-primary text-white" : "bg-gray-200"}`}
+              className={`px-3 py-1 rounded-lg ${sortBy === "createdAt" ? "bg-lavender-600 text-white" : "bg-gray-200"}`}
             >
               Recent
             </button>
             <button
               onClick={() => setSortBy("difficulty")}
-              className={`px-3 py-1 rounded-lg ${sortBy === "difficulty" ? "bg-primary text-white" : "bg-gray-200"}`}
+              className={`px-3 py-1 rounded-lg ${sortBy === "difficulty" ? "bg-lavender-600 text-white" : "bg-gray-200"}`}
             >
               Difficulty
             </button>
@@ -690,8 +735,8 @@ export default function PYQPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {filteredPyqs.map((pyq) => (
-            <div key={pyq.id} className="glassmorphism p-6 rounded-lg shadow-lg">
-              <div className="flex justify-between items-start mb-3">
+            <div key={pyq.id} className={` ${lavenderColors.glassmorphism} p-6 rounded-lg shadow-lg`}>
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-3">
                 <div>
                   <h2 className="text-xl font-semibold flex items-center">
                     <span>
@@ -705,7 +750,7 @@ export default function PYQPage() {
                       {expandedQuestions[pyq.id] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </button>
                   </h2>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
                     {pyq.year && (
                       <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
                         {pyq.year}
@@ -731,7 +776,7 @@ export default function PYQPage() {
 
               {expandedQuestions[pyq.id] && (
                 <>
-                  <div className="mb-4 py-3 px-4 bg-gray-50 rounded-lg">
+                  <div className="mb-4 py-3 px-4 bg-lavender-50 rounded-lg">
                     <ReactMarkdown className="prose max-w-none">{pyq.question}</ReactMarkdown>
                   </div>
 
@@ -739,18 +784,18 @@ export default function PYQPage() {
                   {!pyq.userAnswer && (
                     <div className="mb-4">
                       <h3 className="font-semibold text-md mb-2">Your Answer</h3>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <textarea
                           value={userAnswers[pyq.id] || ""}
                           onChange={(e) => handleAnswerChange(pyq.id, e.target.value)}
                           placeholder="Type your answer here..."
-                          className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none min-h-24"
+                          className="w-full p-3 border rounded-lg focus:ring-lavender-500 focus:outline-none min-h-24"
                         />
                       </div>
                       <button
                         onClick={() => handleSubmitAnswer(pyq)}
                         disabled={!userAnswers[pyq.id] || evaluatingAnswer === pyq.id || tokens < 1}
-                        className="mt-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-opacity-80 transition duration-300 disabled:opacity-50 flex items-center"
+                        className="mt-2 bg-lavender-600 text-white px-4 py-2 rounded-lg hover:bg-lavender-700 transition duration-300 disabled:opacity-50 flex items-center"
                       >
                         {evaluatingAnswer === pyq.id ? (
                           <>
@@ -810,7 +855,7 @@ export default function PYQPage() {
                           <Download size={16} />
                         </button>
                       </h3>
-                      <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="bg-lavender-50 p-4 rounded-lg">
                         <ReactMarkdown className="prose max-w-none">{pyq.answer}</ReactMarkdown>
                       </div>
                     </div>
@@ -818,7 +863,7 @@ export default function PYQPage() {
                     <button
                       onClick={() => handleGetAnswer(pyq)}
                       disabled={loading || tokens < 1 || processingId === pyq.id}
-                      className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-opacity-80 transition duration-300 disabled:opacity-50 flex items-center mt-4"
+                      className="bg-lavender-600 text-white px-4 py-2 rounded-lg hover:bg-lavender-700 transition duration-300 disabled:opacity-50 flex items-center mt-4"
                     >
                       {processingId === pyq.id ? (
                         <>

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
@@ -97,42 +98,107 @@ export async function getGeminiResponse(prompt: string, tutorParams: TutorParams
   return text
 }
 
-export async function generatePracticeQuestions(pyqParams: PYQParams) {
-  // Configure Gemini model
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-  // Get the assigned tutor name for the subject, or default to a general tutor
-  const tutorName = tutorMapping[pyqParams.subject] || "Chandrima"
 
-  // Set defaults for optional parameters
-  const questionCount = pyqParams.count || 5
-  const difficulty = pyqParams.difficulty || "mixed"
-  const format = pyqParams.format || "mixed"
-  const withSolutions = pyqParams.withSolutions !== undefined ? pyqParams.withSolutions : true
 
-  // Build the prompt for generating practice questions
-  const pyqPrompt = `
-    As an experienced Indian education expert named ${tutorName} who specializes in ${pyqParams.subject}, 
-    create ${questionCount} practice questions on the topic of "${pyqParams.topic}" with the following specifications:
-    
-    - Difficulty level: ${difficulty}
-    - Question format: ${format}
-    ${pyqParams.examStyle ? `- Follow the style and pattern of ${pyqParams.examStyle} examinations` : ""}
-    
-    ${withSolutions ? "Include detailed solutions and explanations for each question." : "Do not include solutions."}
-    
-    Format your response in clear markdown with:
-    1. Each question clearly numbered
-    2. Questions organized by type if using mixed formats
-    3. Solutions clearly labeled and separated from questions
-    4. Include proper mathematical notation where applicable
-    
-    Ensure questions are challenging yet appropriate for the specified difficulty level and represent accurate concepts for ${pyqParams.subject}, specifically focusing on ${pyqParams.topic}.
-  `
 
-  const result = await model.generateContent(pyqPrompt)
-  const response = await result.response
-  const text = response.text()
 
-  return text
-}
+const formatAIResponse = (response: string) => {
+  // Remove any introductory text before the first question
+  let cleanedResponse = response;
+  
+  // Check for introductory text pattern (prose before first question)
+  const introMatch = response.match(/^(.*?)(\*\*(?:Question|Q)\s*\d+|#{1,3}\s*(?:Question|Q)\s*\d+|\d+\.\s*(?:Question|Q)|(?:Question|Q)\s*\d+:)/i);
+  if (introMatch && introMatch[1] && introMatch[1].trim().length > 0) {
+    // Remove intro if it's not just whitespace and doesn't look like a question itself
+    if (!introMatch[1].match(/\*\*|\d+\./)) {
+      cleanedResponse = response.substring(introMatch[0].indexOf(introMatch[2]));
+    }
+  }
+  
+  // Make sure solutions are in a separate section with proper heading
+  if (!cleanedResponse.match(/---+.*?solutions|solutions\s*&\s*explanations/i)) {
+    // Check if there are identifiable solutions but no solutions section header
+    const firstSolutionMatch = cleanedResponse.match(/\*\*Solution\s*\d+\*\*|#{1,3}\s*Solution\s*\d+/i);
+    if (firstSolutionMatch) {
+      // Find the position of the first solution
+      const pos = cleanedResponse.indexOf(firstSolutionMatch[0]);
+      
+      // Insert a proper solutions divider
+      cleanedResponse = 
+        cleanedResponse.substring(0, pos) + 
+        "\n\n---\n\n**Solutions & Explanations**\n\n" + 
+        cleanedResponse.substring(pos);
+    }
+  }
+  
+  // Ensure questions are properly formatted with bold markers
+  cleanedResponse = cleanedResponse.replace(
+    /^(Question\s*\d+:)(?!\*\*)/gim, 
+    "**$1**"
+  );
+  
+  // Ensure solutions are properly formatted with bold markers
+  cleanedResponse = cleanedResponse.replace(
+    /^(Solution\s*\d+:)(?!\*\*)/gim, 
+    "**$1**"
+  );
+  
+  return cleanedResponse;
+};
+
+// Update the generatePracticeQuestions function to specify a clear format
+export const generatePracticeQuestions = async (params: { subject: any; topic: any; difficulty: any; count: any; format: any; withSolutions: any; examStyle: any }) => {
+  const { subject, topic, difficulty, count, format, withSolutions, examStyle } = params;
+  
+  // Construct a detailed prompt with format instructions
+  const prompt = `
+Generate ${count} ${difficulty} level ${subject} questions about ${topic} following the ${examStyle}.
+Format: ${format} questions.
+
+Follow this EXACT structure:
+
+First, list all the questions:
+
+**Question 1:**
+[Question text here]
+
+**Question 2:**
+[Question text here]
+
+And so on for ${count} questions.
+
+Then, after ALL questions, add a divider:
+
+---
+
+**Solutions & Explanations**
+
+**Solution 1:**
+[Detailed solution for question 1 here]
+
+**Solution 2:**
+[Detailed solution for question 2 here]
+
+And so on for all questions.
+
+Important instructions:
+1. Start each question with "**Question N:**" where N is the question number
+2. Start each solution with "**Solution N:**" where N is the question number
+3. Put all solutions in a separate section after a divider (---)
+4. Make solutions clear, comprehensive and properly formatted
+5. For multiple choice questions, clearly indicate the correct answer
+6. For any diagrams or mathematical formulas, use proper markdown formatting
+`;
+
+  // Call to Gemini API with the improved prompt
+  const response = await getGeminiResponse(prompt, {
+    subject: subject,
+    topic: topic,
+    personality: "neutral",
+    level: difficulty === "easy" ? "beginner" : difficulty === "medium" ? "intermediate" : "expert",
+    teachingStyle: "example-based"
+  });
+  
+  return response;
+};

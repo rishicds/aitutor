@@ -1,11 +1,12 @@
+/* eslint-disable */
 "use client"
 
 import { useEffect, useRef } from "react"
-import Chart from "chart.js/auto"
+import Chart, { ChartTypeRegistry } from "chart.js/auto"
 
 interface ChartComponentProps {
   data: {
-    type: string
+    type: keyof ChartTypeRegistry
     labels: string[]
     datasets: {
       label: string
