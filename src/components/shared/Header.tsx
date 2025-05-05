@@ -89,6 +89,10 @@ const DesktopSideNav = () => {
           <FiUser />
           <span className="sr-only">User</span>
         </NavItem>
+        <NavItem selected={selected === 7} id={7} setSelected={setSelected} link="/lab">
+          <FiZap />
+          <span className="sr-only">Laboratory</span>
+        </NavItem>
 
 
         {/* Auth Buttons (Sign In/Out) */}
