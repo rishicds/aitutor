@@ -46,13 +46,22 @@ export default function ExperimentPage() {
                 ? "Molecular Bonding Visualization"
                 : params.id === "wave-interference"
                   ? "Wave Interference Patterns"
-                  : "Experiment",
+                  : params.id === "salt-analysis"
+                    ? "Salt Analysis Chemistry Lab"
+                    : params.id === "pendulum-2d"
+                      ? "2D Pendulum Simulation"
+                      : params.id === "graph-plotter"
+                        ? "Mathematical Graph Plotter"
+                        : "Experiment",
           description:
             "This experiment allows you to visualize and analyze scientific phenomena through interactive 3D models and simulations.",
           category:
-            params.id === "pendulum-motion" || params.id === "wave-interference"
+            params.id === "pendulum-motion" ||
+            params.id === "wave-interference" ||
+            params.id === "pendulum-2d" ||
+            params.id === "graph-plotter"
               ? "physics"
-              : params.id === "molecular-bonds"
+              : params.id === "molecular-bonds" || params.id === "salt-analysis"
                 ? "chemistry"
                 : "biology",
           difficulty: "Intermediate",
@@ -61,7 +70,7 @@ export default function ExperimentPage() {
           modelPath: `/models/${params.id}.glb`,
           views: 1245,
           featured: true,
-          theory: `# Theoretical Background
+          theory: ` Theoretical Background
 
 ## ${
             params.id === "pendulum-motion"
@@ -70,7 +79,13 @@ export default function ExperimentPage() {
                 ? "Chemical Bonding"
                 : params.id === "wave-interference"
                   ? "Wave Superposition"
-                  : "Scientific Principles"
+                  : params.id === "salt-analysis"
+                    ? "Qualitative Analysis of Salts"
+                    : params.id === "pendulum-2d"
+                      ? "2D Pendulum Physics"
+                      : params.id === "graph-plotter"
+                        ? "Mathematical Functions and Graphing"
+                        : "Scientific Principles"
           }
 
 ${
@@ -80,9 +95,14 @@ ${
       ? "Chemical bonds are the forces that hold atoms together to form molecules. The two main types of chemical bonds are ionic bonds and covalent bonds.\n\nCovalent bonds involve the sharing of electron pairs between atoms. The shared electrons are attracted to the nuclei of both atoms, which keeps the atoms together."
       : params.id === "wave-interference"
         ? "When two or more waves overlap, they interfere with each other. The resulting wave is the sum of the individual waves at each point in space.\n\nConstructive interference occurs when the peaks of two waves align, resulting in a larger amplitude. Destructive interference occurs when a peak aligns with a trough, resulting in a smaller amplitude or complete cancellation."
-        : "This section contains the theoretical principles behind the experiment."
-}`,
-          procedure: `# Experimental Procedure
+        : params.id === "salt-analysis"
+          ? "Qualitative analysis is a branch of chemistry that deals with the identification of elements or compounds in a sample. Salt analysis involves the systematic identification of cations and anions present in a given salt.\n\nThe analysis typically involves a series of chemical tests and observations of reactions, color changes, and precipitate formation to identify the ions present in the salt."
+            : params.id === "graph-plotter"
+              ? "Mathematical functions describe relationships between variables. When plotted on a coordinate system, these functions create visual representations that help us understand their behavior.\n\nDifferent types of functions (linear, quadratic, trigonometric, etc.) produce different characteristic shapes when graphed. Analyzing these graphs helps in understanding concepts like domain, range, intercepts, and asymptotes."
+              : "This section contains the theoretical principles behind the experiment."
+}
+`,
+          procedure: ` Experimental Procedure
 
 1. **Setup**: ${
             params.id === "pendulum-motion"
@@ -91,7 +111,13 @@ ${
                 ? "Examine the molecular structure and observe how different atoms bond together."
                 : params.id === "wave-interference"
                   ? "Adjust the amplitude and frequency of the waves to observe different interference patterns."
-                  : "Configure the experimental parameters."
+                  : params.id === "salt-analysis"
+                    ? "Select a known or unknown salt sample and prepare reagents for testing."
+                    : params.id === "pendulum-2d"
+                      ? "Set the initial position of the pendulum and adjust parameters like gravity, length, and damping."
+                      : params.id === "graph-plotter"
+                        ? "Enter mathematical functions and adjust the graph settings like axes ranges and grid size."
+                        : "Configure the experimental parameters."
           }
 
 2. **Observation**: Observe the 3D visualization and note how changes in parameters affect the behavior.
@@ -111,8 +137,27 @@ ${
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[70vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[70vh]">
+        <div className="relative w-24 h-24">
+          <div className="absolute inset-0 border-8 border-dashed border-teal-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-2 border-8 border-l-transparent border-teal-400 rounded-full animate-spin-slow"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg className="w-12 h-12 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 4.53L9.4 7.13L12 9.33L14.6 7.13L12 4.53ZM4.53 12L7.13 14.6L9.33 12L7.13 9.4L4.53 12ZM12 19.47L14.6 16.87L12 14.67L9.4 16.87L12 19.47ZM19.47 12L16.87 9.4L14.67 12L16.87 14.6L19.47 12ZM12 1L7 6L12 10L17 6L12 1ZM1 12L6 17L10 12L6 7L1 12ZM12 23L17 18L12 14L7 18L12 23ZM23 12L18 7L14 12L18 17L23 12Z" />
+            </svg>
+          </div>
+        </div>
+        <p className="mt-4 text-teal-600 font-medium animate-pulse">Loading experiment...</p>
+        <style jsx global>{`
+          @keyframes spin-slow {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          .animate-spin-slow {
+            animation: spin-slow 3s linear infinite;
+          }
+        `}</style>
       </div>
     )
   }
@@ -137,7 +182,7 @@ ${
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-4">
-          <Link href="/" className="flex items-center">
+          <Link href="/lab" className="flex items-center">
             <ChevronLeft className="mr-2" size={16} />
             Back to Experiments
           </Link>

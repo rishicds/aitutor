@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Inter } from "next/font/google"
 import { useState, useEffect } from "react"
 import "./globals.css"
+import 'katex/dist/katex.min.css'; // Import KaTeX CSS
 import ResponsiveNavigation from "@/components/shared/Header"
 import Header from "@/components/shared/Header"
 import Footer from "@/components/shared/Footer"

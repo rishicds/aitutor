@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, SetStateAction } from "react"
+import { useState, useEffect, type SetStateAction } from "react"
 import {
   Search,
   Filter,
@@ -89,18 +89,7 @@ export default function LabExperimentsPage() {
       views: 1532,
       featured: false,
     },
-    {
-      id: "neuron-firing",
-      title: "Neuron Action Potential",
-      description: "Observe the electrical signals in neurons and how action potentials propagate along axons.",
-      category: "neuroscience",
-      difficulty: "Advanced",
-      tags: ["neurons", "electrical", "brain"],
-      thumbnail: "/placeholder.svg?height=200&width=300",
-      modelPath: "/models/neuron.glb",
-      views: 876,
-      featured: false,
-    },
+    
     {
       id: "wave-interference",
       title: "Wave Interference Patterns",
@@ -114,18 +103,32 @@ export default function LabExperimentsPage() {
       views: 654,
       featured: true,
     },
+    
     {
-      id: "gene-expression",
-      title: "Gene Expression Regulation",
+      id: "salt-analysis",
+      title: "Salt Analysis Chemistry Lab",
       description:
-        "Explore how genes are regulated and expressed through transcription factors and other regulatory mechanisms.",
-      category: "genetics",
-      difficulty: "Advanced",
-      tags: ["genes", "regulation", "expression"],
+        "Perform qualitative analysis of different salts through chemical tests and reactions to identify unknown compounds.",
+      category: "chemistry",
+      difficulty: "Intermediate",
+      tags: ["qualitative analysis", "reactions", "ions"],
       thumbnail: "/placeholder.svg?height=200&width=300",
-      modelPath: "/models/gene.glb",
-      views: 432,
-      featured: false,
+      modelPath: "/models/salt.glb",
+      views: 654,
+      featured: true,
+    },
+    {
+      id: "graph-plotter",
+      title: "Mathematical Graph Plotter",
+      description:
+        "Plot and visualize different mathematical functions and equations on a coordinate plane with customizable settings.",
+      category: "physics",
+      difficulty: "Intermediate",
+      tags: ["functions", "graphing", "equations"],
+      thumbnail: "/placeholder.svg?height=200&width=300",
+      modelPath: "/models/graph.glb",
+      views: 789,
+      featured: true,
     },
   ])
 
@@ -200,38 +203,38 @@ export default function LabExperimentsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 bg-gradient-to-b from-white to-purple-50">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-teal-500 to-blue-600 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text text-transparent">
           Interactive Lab Experiments
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-lg text-black max-w-2xl mx-auto">
           Explore scientific concepts through interactive 3D visualizations. Select an experiment to study phenomena
           across various scientific disciplines.
         </p>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white/80 backdrop-blur-md border rounded-lg shadow-lg p-6 mb-8">
+      <div className="bg-white border-2 border-purple-300 rounded-lg shadow-[5px_5px_0_rgba(124,58,237,0.5)] p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400" size={16} />
             <Input
               type="text"
               placeholder="Search experiments or topics..."
               value={searchQuery}
               onChange={(e: { target: { value: SetStateAction<string> } }) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-purple-300 focus:ring-purple-500 focus:border-purple-500 text-black"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-muted-foreground" />
+            <Filter size={16} className="text-purple-500" />
             <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="border-purple-300 text-black">
                 <SelectValue placeholder="Difficulty Level" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white text-black border-purple-300">
                 <SelectItem value="all">All Levels</SelectItem>
                 {difficultyLevels.map((level) => (
                   <SelectItem key={level} value={level}>
@@ -243,12 +246,12 @@ export default function LabExperimentsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-muted-foreground" />
+            <BookOpen size={16} className="text-purple-500" />
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
+              <SelectTrigger className="border-purple-300 text-black">
                 <SelectValue placeholder="Sort By" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white text-black border-purple-300">
                 <SelectItem value="popular">Most Popular</SelectItem>
                 <SelectItem value="newest">Newest</SelectItem>
                 <SelectItem value="difficulty">Difficulty</SelectItem>
@@ -260,10 +263,10 @@ export default function LabExperimentsPage() {
 
       {/* Category Tabs */}
       <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
-        <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4">
+        <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4 bg-white border-2 border-purple-300 p-1">
           <TabsTrigger
             value="all"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-blue-600 data-[state=active]:text-white"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-black"
           >
             All
           </TabsTrigger>
@@ -271,7 +274,7 @@ export default function LabExperimentsPage() {
             <TabsTrigger
               key={category.id}
               value={category.id}
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-blue-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-black"
             >
               <category.icon className="mr-2" size={16} />
               {category.name}
@@ -282,44 +285,48 @@ export default function LabExperimentsPage() {
         {/* Experiments Grid - Same content for all tabs, filtering is handled by state */}
         <TabsContent value={activeCategory} className="mt-0">
           {filteredExperiments.length === 0 ? (
-            <div className="text-center py-20">
-              <Beaker className="mx-auto mb-4" size={48} />
-              <p className="text-lg text-gray-500">No experiments found.</p>
-              <p className="text-gray-500">Try adjusting your filters or search query.</p>
+            <div className="text-center py-20 bg-white border-2 border-purple-300 rounded-lg shadow-[5px_5px_0_rgba(124,58,237,0.5)]">
+              <Beaker className="mx-auto mb-4 text-purple-500" size={48} />
+              <p className="text-lg text-black">No experiments found.</p>
+              <p className="text-black">Try adjusting your filters or search query.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredExperiments.map((experiment) => (
-                <Card key={experiment.id} className="overflow-hidden transition-all duration-300 hover:shadow-lg">
-                  <div className="relative h-48 overflow-hidden">
+                <Card
+                  key={experiment.id}
+                  className="overflow-hidden bg-white border-2 border-purple-300 rounded-lg transition-all duration-300 
+                  transform hover:-translate-y-2 hover:rotate-1
+                  shadow-[5px_5px_0_rgba(124,58,237,0.5)] 
+                  hover:shadow-[8px_8px_0_rgba(124,58,237,0.7)]"
+                >
+                  <div className="relative h-48 overflow-hidden border-b-2 border-purple-300">
                     <img
                       src={experiment.thumbnail || "/placeholder.svg"}
                       alt={experiment.title}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
                     {experiment.featured && (
-                      <Badge className="absolute top-2 right-2 bg-gradient-to-r from-teal-500 to-blue-600">
-                        Featured
-                      </Badge>
+                      <Badge className="absolute top-2 right-2 bg-purple-600 text-white border-0">Featured</Badge>
                     )}
                   </div>
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 border-b border-purple-100">
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl">{experiment.title}</CardTitle>
-                      <Badge variant="outline" className="ml-2">
+                      <CardTitle className="text-xl font-extrabold text-black">{experiment.title}</CardTitle>
+                      <Badge variant="outline" className="ml-2 border-purple-400 text-black">
                         {experiment.difficulty}
                       </Badge>
                     </div>
-                    <CardDescription>
+                    <CardDescription className="text-purple-800 font-medium">
                       {categories.find((c) => c.id === experiment.category)?.name} • {experiment.views.toLocaleString()}{" "}
                       views
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="text-black">
                     <p className={expandedExperiments[experiment.id] ? "" : "line-clamp-2"}>{experiment.description}</p>
                     <button
                       onClick={() => toggleExpanded(experiment.id)}
-                      className="text-sm text-teal-600 mt-1 flex items-center hover:underline"
+                      className="text-sm text-purple-700 mt-1 flex items-center hover:underline font-medium"
                     >
                       {expandedExperiments[experiment.id] ? (
                         <>
@@ -333,7 +340,11 @@ export default function LabExperimentsPage() {
                     </button>
                     <div className="flex flex-wrap gap-1 mt-3">
                       {experiment.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-xs bg-purple-100 text-purple-800 border border-purple-200"
+                        >
                           {tag}
                         </Badge>
                       ))}
@@ -341,8 +352,12 @@ export default function LabExperimentsPage() {
                   </CardContent>
                   <CardFooter className="pt-0">
                     <Button
-                      onClick={() => openExperiment(experiment)}
-                      className="w-full bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-600 hover:to-blue-700"
+                      onClick={() => {
+                        window.location.href = `/lab/${experiment.id}`
+                      }}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white border-2 border-purple-300 font-bold 
+                      shadow-[3px_3px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-1 hover:translate-y-1
+                      transition-all duration-200"
                     >
                       Launch Experiment
                     </Button>
@@ -357,33 +372,49 @@ export default function LabExperimentsPage() {
       {/* 3D Experiment Viewer Modal */}
       {selectedExperiment && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
+          <div className="bg-white rounded-lg border-2 border-purple-400 shadow-[8px_8px_0_rgba(124,58,237,0.7)] w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b-2 border-purple-300 flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold">{selectedExperiment.title}</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-2xl font-bold text-black">{selectedExperiment.title}</h2>
+                <p className="text-purple-700">
                   {categories.find((c) => c.id === selectedExperiment.category)?.name} • {selectedExperiment.difficulty}
                 </p>
               </div>
-              <Button variant="outline" onClick={closeExperiment}>
+              <Button
+                variant="outline"
+                className="border-2 border-purple-300 text-black hover:bg-purple-100 font-bold
+                shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5
+                transition-all duration-200"
+                onClick={closeExperiment}
+              >
                 Close
               </Button>
             </div>
-            <div className="flex-grow overflow-hidden min-h-[500px]">
+            <div className="flex-grow overflow-hidden min-h-[500px] bg-white">
               <ExperimentViewer experiment={selectedExperiment} />
             </div>
-            <div className="p-4 border-t">
+            <div className="p-4 border-t-2 border-purple-300 bg-white text-black">
               <h3 className="font-semibold mb-2">Description</h3>
               <p>{selectedExperiment.description}</p>
               <div className="mt-4 flex justify-between">
                 <div className="flex gap-2">
                   {selectedExperiment.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="bg-purple-100 text-purple-800 border border-purple-200"
+                    >
                       {tag}
                     </Badge>
                   ))}
                 </div>
-                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 border-2 border-purple-300 text-black hover:bg-purple-100
+                  shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5
+                  transition-all duration-200"
+                >
                   <ExternalLink size={14} />
                   Full Screen
                 </Button>
