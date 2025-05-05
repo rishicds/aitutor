@@ -61,7 +61,7 @@ export default function ExperimentPage() {
           modelPath: `/models/${params.id}.glb`,
           views: 1245,
           featured: true,
-          theory: `# Theoretical Background
+          theory: ` Theoretical Background
 
 ## ${
             params.id === "pendulum-motion"
@@ -82,7 +82,7 @@ ${
         ? "When two or more waves overlap, they interfere with each other. The resulting wave is the sum of the individual waves at each point in space.\n\nConstructive interference occurs when the peaks of two waves align, resulting in a larger amplitude. Destructive interference occurs when a peak aligns with a trough, resulting in a smaller amplitude or complete cancellation."
         : "This section contains the theoretical principles behind the experiment."
 }`,
-          procedure: `# Experimental Procedure
+          procedure: ` Experimental Procedure
 
 1. **Setup**: ${
             params.id === "pendulum-motion"
@@ -137,7 +137,7 @@ ${
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-4">
-          <Link href="/" className="flex items-center">
+          <Link href="/lab" className="flex items-center">
             <ChevronLeft className="mr-2" size={16} />
             Back to Experiments
           </Link>

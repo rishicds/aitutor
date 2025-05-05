@@ -347,7 +347,9 @@ export default function LabExperimentsPage() {
                   </CardContent>
                   <CardFooter className="pt-0">
                     <Button
-                      onClick={() => openExperiment(experiment)}
+                      onClick={() => {
+                      window.location.href = `/lab/${experiment.id}`;
+                      }}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white border-2 border-purple-300 font-bold 
                       shadow-[3px_3px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-1 hover:translate-y-1
                       transition-all duration-200"
