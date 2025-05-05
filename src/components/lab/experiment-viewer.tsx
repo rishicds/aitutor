@@ -11,6 +11,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2 } from "lucide-react"
 import type * as THREE from "three"
 import AIAnalysis from "./ai-analysis"
+import SaltAnalysisContent from "./salt-analysis-content"
+
+import GraphPlotterContent from "./graph-plotter-content"
 
 // Define experiment interface
 interface Experiment {
@@ -314,8 +317,19 @@ export default function ExperimentViewer({ experiment }: { experiment: Experimen
     }
   }
 
+  // Check if the experiment is one of the new 2D experiments
+  const is2DExperiment = ["salt-analysis", "pendulum-2d", "graph-plotter"].includes(experiment.id)
+
   // Render the appropriate simulation based on experiment type
   const renderSimulation = () => {
+    // For 2D experiments, render the appropriate component
+    if (experiment.id === "salt-analysis") {
+      return <SaltAnalysisContent />
+    }  else if (experiment.id === "graph-plotter") {
+      return <GraphPlotterContent />
+    }
+
+    // For 3D experiments, render in the Canvas
     switch (experiment.id) {
       case "pendulum-motion":
         return (
@@ -334,6 +348,16 @@ export default function ExperimentViewer({ experiment }: { experiment: Experimen
 
   // Render experiment-specific controls
   const renderControls = () => {
+    // For 2D experiments, we don't need controls here as they're included in the components
+    if (is2DExperiment) {
+      return (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground">Controls are available directly in the experiment interface.</p>
+        </div>
+      )
+    }
+
+    // For 3D experiments, render the appropriate controls
     switch (experiment.id) {
       case "pendulum-motion":
         return (
@@ -551,182 +575,217 @@ export default function ExperimentViewer({ experiment }: { experiment: Experimen
   return (
     <div className={`flex flex-col ${fullscreen ? "h-screen fixed inset-0 z-50 bg-white" : "h-[600px] md:h-[700px]"}`}>
       <div className="flex-grow relative">
-        <Canvas>
-          <PerspectiveCamera makeDefault position={[0, 0, zoom]} />
-          <ambientLight intensity={0.5} />
-          <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-          <pointLight position={[-10, -10, -10]} />
+        {is2DExperiment ? (
+          // Render 2D experiments directly
+          <div className="w-full h-full">{renderSimulation()}</div>
+        ) : (
+          // Render 3D experiments in Canvas
+          <Canvas>
+            <PerspectiveCamera makeDefault position={[0, 0, zoom]} />
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+            <pointLight position={[-10, -10, -10]} />
 
-          <Suspense
-            fallback={
-              <Html center>
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lavender-500"></div>
-                </div>
-              </Html>
-            }
-          >
-            {renderSimulation()}
-          </Suspense>
-
-          <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
-          <Environment preset="studio" />
-        </Canvas>
-
-        {/* Overlay controls */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPlaying(!playing)}
-            className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
-          >
-            {playing ? <Pause size={18} className="text-lavender-700" /> : <Play size={18} className="text-lavender-700" />}
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={resetSimulation}
-            className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
-          >
-            <RotateCcw size={18} className="text-lavender-700" />
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setZoom(Math.min(zoom + 1, 10))}
-            className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
-          >
-            <ZoomIn size={18} className="text-lavender-700" />
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setZoom(Math.max(zoom - 1, 2))}
-            className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
-          >
-            <ZoomOut size={18} className="text-lavender-700" />
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setFullscreen(!fullscreen)}
-            className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
-          >
-            {fullscreen ? <Minimize2 size={18} className="text-lavender-700" /> : <Maximize2 size={18} className="text-lavender-700" />}
-          </Button>
-        </div>
-      </div>
-
-      {/* Controls panel */}
-      <div className="bg-white border-t border-lavender-200 p-4 overflow-y-auto max-h-[300px] md:max-h-[250px]">
-        <Tabs value={simulationTab} onValueChange={setSimulationTab} className="w-full">
-          <TabsList className="grid grid-cols-4 mb-4 bg-lavender-100">
-            <TabsTrigger value="visualization" className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white">
-              Visualization
-            </TabsTrigger>
-            <TabsTrigger value="parameters" className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white">
-              Parameters
-            </TabsTrigger>
-            <TabsTrigger value="data" className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white">
-              Data
-            </TabsTrigger>
-            <TabsTrigger value="ai-analysis" className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white">
-              AI Analysis
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="visualization" className="space-y-4 mt-0">
-            <Card className="border-lavender-200">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2 text-lavender-800">Visualization Controls</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Use the controls below to adjust the visualization settings.
-                </p>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Zoom Level</span>
-                      <span className="text-sm">{zoom.toFixed(1)}</span>
-                    </div>
-                    <Slider 
-                      value={[zoom]} 
-                      min={2} 
-                      max={10} 
-                      step={0.5} 
-                      onValueChange={(value) => setZoom(value[0])} 
-                      className="py-2"
-                    />
+            <Suspense
+              fallback={
+                <Html center>
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lavender-500"></div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </Html>
+              }
+            >
+              {renderSimulation()}
+            </Suspense>
 
-          <TabsContent value="parameters" className="space-y-4 mt-0">
-            <Card className="border-lavender-200">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2 text-lavender-800">Experiment Parameters</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Adjust the parameters to observe how they affect the experiment.
-                </p>
+            <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+            <Environment preset="studio" />
+          </Canvas>
+        )}
 
-                {renderControls()}
-              </CardContent>
-            </Card>
-          </TabsContent>
+        {/* Overlay controls - only show for 3D experiments */}
+        {!is2DExperiment && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPlaying(!playing)}
+              className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
+            >
+              {playing ? (
+                <Pause size={18} className="text-lavender-700" />
+              ) : (
+                <Play size={18} className="text-lavender-700" />
+              )}
+            </Button>
 
-          <TabsContent value="data" className="space-y-4 mt-0">
-            <Card className="border-lavender-200">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2 text-lavender-800">Data Analysis</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  View and analyze the data collected from this experiment.
-                </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={resetSimulation}
+              className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
+            >
+              <RotateCcw size={18} className="text-lavender-700" />
+            </Button>
 
-                <div className="p-4 border border-lavender-100 rounded-lg bg-lavender-50">
-                  <p className="text-sm">
-                    Data visualization and analysis tools will be displayed here, including graphs, charts, and
-                    numerical data.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setZoom(Math.min(zoom + 1, 10))}
+              className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
+            >
+              <ZoomIn size={18} className="text-lavender-700" />
+            </Button>
 
-          <TabsContent value="ai-analysis" className="space-y-4 mt-0">
-            <AIAnalysis
-              experiment={experiment}
-              parameters={{
-                // Pendulum parameters
-                gravity,
-                length: pendulumLength,
-                damping: pendulumDamping,
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setZoom(Math.max(zoom - 1, 2))}
+              className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
+            >
+              <ZoomOut size={18} className="text-lavender-700" />
+            </Button>
 
-                // Molecule parameters
-                bondLength,
-                atomSize,
-                moleculeRotationSpeed,
-
-                // DNA parameters
-                helixRadius,
-                helixHeight,
-                dnaRotationSpeed,
-
-                // Wave parameters
-                amplitude: waveAmplitude,
-                frequency: waveFrequency,
-                phase: wavePhase,
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setFullscreen(!fullscreen)}
+              className="rounded-full w-10 h-10 flex items-center justify-center bg-lavender-100 hover:bg-lavender-200"
+            >
+              {fullscreen ? (
+                <Minimize2 size={18} className="text-lavender-700" />
+              ) : (
+                <Maximize2 size={18} className="text-lavender-700" />
+              )}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Controls panel - only show for 3D experiments or if we're on the parameters tab */}
+      {(!is2DExperiment || simulationTab !== "visualization") && (
+        <div className="bg-white border-t border-lavender-200 p-4 overflow-y-auto max-h-[300px] md:max-h-[250px]">
+          <Tabs value={simulationTab} onValueChange={setSimulationTab} className="w-full">
+            <TabsList className="grid grid-cols-4 mb-4 bg-lavender-100">
+              <TabsTrigger
+                value="visualization"
+                className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white"
+              >
+                Visualization
+              </TabsTrigger>
+              <TabsTrigger
+                value="parameters"
+                className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white"
+              >
+                Parameters
+              </TabsTrigger>
+              <TabsTrigger value="data" className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white">
+                Data
+              </TabsTrigger>
+              <TabsTrigger
+                value="ai-analysis"
+                className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white"
+              >
+                AI Analysis
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="visualization" className="space-y-4 mt-0">
+              <Card className="border-lavender-200">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2 text-lavender-800">Visualization Controls</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Use the controls below to adjust the visualization settings.
+                  </p>
+
+                  {!is2DExperiment && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Zoom Level</span>
+                          <span className="text-sm">{zoom.toFixed(1)}</span>
+                        </div>
+                        <Slider
+                          value={[zoom]}
+                          min={2}
+                          max={10}
+                          step={0.5}
+                          onValueChange={(value) => setZoom(value[0])}
+                          className="py-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {is2DExperiment && (
+                    <p className="text-sm text-muted-foreground">
+                      This experiment uses a 2D visualization with built-in controls.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="parameters" className="space-y-4 mt-0">
+              <Card className="border-lavender-200">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2 text-lavender-800">Experiment Parameters</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Adjust the parameters to observe how they affect the experiment.
+                  </p>
+
+                  {renderControls()}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="data" className="space-y-4 mt-0">
+              <Card className="border-lavender-200">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2 text-lavender-800">Data Analysis</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    View and analyze the data collected from this experiment.
+                  </p>
+
+                  <div className="p-4 border border-lavender-100 rounded-lg bg-lavender-50">
+                    <p className="text-sm">
+                      Data visualization and analysis tools will be displayed here, including graphs, charts, and
+                      numerical data.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="ai-analysis" className="space-y-4 mt-0">
+              <AIAnalysis
+                experiment={experiment}
+                parameters={{
+                  // Pendulum parameters
+                  gravity,
+                  length: pendulumLength,
+                  damping: pendulumDamping,
+
+                  // Molecule parameters
+                  bondLength,
+                  atomSize,
+                  moleculeRotationSpeed,
+
+                  // DNA parameters
+                  helixRadius,
+                  helixHeight,
+                  dnaRotationSpeed,
+
+                  // Wave parameters
+                  amplitude: waveAmplitude,
+                  frequency: waveFrequency,
+                  phase: wavePhase,
+                }}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
     </div>
   )
 }

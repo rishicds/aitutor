@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, SetStateAction } from "react"
+import { useState, useEffect, type SetStateAction } from "react"
 import {
   Search,
   Filter,
@@ -89,18 +89,7 @@ export default function LabExperimentsPage() {
       views: 1532,
       featured: false,
     },
-    {
-      id: "neuron-firing",
-      title: "Neuron Action Potential",
-      description: "Observe the electrical signals in neurons and how action potentials propagate along axons.",
-      category: "neuroscience",
-      difficulty: "Advanced",
-      tags: ["neurons", "electrical", "brain"],
-      thumbnail: "/placeholder.svg?height=200&width=300",
-      modelPath: "/models/neuron.glb",
-      views: 876,
-      featured: false,
-    },
+    
     {
       id: "wave-interference",
       title: "Wave Interference Patterns",
@@ -114,18 +103,32 @@ export default function LabExperimentsPage() {
       views: 654,
       featured: true,
     },
+    
     {
-      id: "gene-expression",
-      title: "Gene Expression Regulation",
+      id: "salt-analysis",
+      title: "Salt Analysis Chemistry Lab",
       description:
-        "Explore how genes are regulated and expressed through transcription factors and other regulatory mechanisms.",
-      category: "genetics",
-      difficulty: "Advanced",
-      tags: ["genes", "regulation", "expression"],
+        "Perform qualitative analysis of different salts through chemical tests and reactions to identify unknown compounds.",
+      category: "chemistry",
+      difficulty: "Intermediate",
+      tags: ["qualitative analysis", "reactions", "ions"],
       thumbnail: "/placeholder.svg?height=200&width=300",
-      modelPath: "/models/gene.glb",
-      views: 432,
-      featured: false,
+      modelPath: "/models/salt.glb",
+      views: 654,
+      featured: true,
+    },
+    {
+      id: "graph-plotter",
+      title: "Mathematical Graph Plotter",
+      description:
+        "Plot and visualize different mathematical functions and equations on a coordinate plane with customizable settings.",
+      category: "physics",
+      difficulty: "Intermediate",
+      tags: ["functions", "graphing", "equations"],
+      thumbnail: "/placeholder.svg?height=200&width=300",
+      modelPath: "/models/graph.glb",
+      views: 789,
+      featured: true,
     },
   ])
 
@@ -290,8 +293,8 @@ export default function LabExperimentsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredExperiments.map((experiment) => (
-                <Card 
-                  key={experiment.id} 
+                <Card
+                  key={experiment.id}
                   className="overflow-hidden bg-white border-2 border-purple-300 rounded-lg transition-all duration-300 
                   transform hover:-translate-y-2 hover:rotate-1
                   shadow-[5px_5px_0_rgba(124,58,237,0.5)] 
@@ -304,9 +307,7 @@ export default function LabExperimentsPage() {
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
                     {experiment.featured && (
-                      <Badge className="absolute top-2 right-2 bg-purple-600 text-white border-0">
-                        Featured
-                      </Badge>
+                      <Badge className="absolute top-2 right-2 bg-purple-600 text-white border-0">Featured</Badge>
                     )}
                   </div>
                   <CardHeader className="pb-2 border-b border-purple-100">
@@ -339,7 +340,11 @@ export default function LabExperimentsPage() {
                     </button>
                     <div className="flex flex-wrap gap-1 mt-3">
                       {experiment.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs bg-purple-100 text-purple-800 border border-purple-200">
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-xs bg-purple-100 text-purple-800 border border-purple-200"
+                        >
                           {tag}
                         </Badge>
                       ))}
@@ -348,7 +353,7 @@ export default function LabExperimentsPage() {
                   <CardFooter className="pt-0">
                     <Button
                       onClick={() => {
-                      window.location.href = `/lab/${experiment.id}`;
+                        window.location.href = `/lab/${experiment.id}`
                       }}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white border-2 border-purple-300 font-bold 
                       shadow-[3px_3px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-1 hover:translate-y-1
@@ -375,11 +380,13 @@ export default function LabExperimentsPage() {
                   {categories.find((c) => c.id === selectedExperiment.category)?.name} • {selectedExperiment.difficulty}
                 </p>
               </div>
-              <Button variant="outline" 
+              <Button
+                variant="outline"
                 className="border-2 border-purple-300 text-black hover:bg-purple-100 font-bold
                 shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5
                 transition-all duration-200"
-                onClick={closeExperiment}>
+                onClick={closeExperiment}
+              >
                 Close
               </Button>
             </div>
@@ -392,15 +399,22 @@ export default function LabExperimentsPage() {
               <div className="mt-4 flex justify-between">
                 <div className="flex gap-2">
                   {selectedExperiment.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="bg-purple-100 text-purple-800 border border-purple-200">
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="bg-purple-100 text-purple-800 border border-purple-200"
+                    >
                       {tag}
                     </Badge>
                   ))}
                 </div>
-                <Button variant="outline" size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex items-center gap-1 border-2 border-purple-300 text-black hover:bg-purple-100
                   shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] hover:translate-x-0.5 hover:translate-y-0.5
-                  transition-all duration-200">
+                  transition-all duration-200"
+                >
                   <ExternalLink size={14} />
                   Full Screen
                 </Button>
