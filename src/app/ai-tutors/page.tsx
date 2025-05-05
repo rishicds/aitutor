@@ -1,15 +1,19 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import Image from "next/image"
-import Link from "next/link"
-import { Sparkles } from "lucide-react"
-import { useState } from "react"
+import { motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebaseConfig";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 // Function to convert subject names into URL-friendly slugs
 const formatSubjectSlug = (subject: string) => {
-  return subject.toLowerCase().replace(/\s+/g, "-") // Convert spaces to dashes
-}
+  return subject.toLowerCase().replace(/\s+/g, "-"); // Convert spaces to dashes
+};
 
 // AI Tutors categorized by subject type
 const tutors = [
@@ -33,7 +37,8 @@ const tutors = [
     name: "Prof. Rajesh Verma",
     subject: "Chemistry",
     category: "JEE",
-    description: "In-depth knowledge of organic, inorganic & physical chemistry",
+    description:
+      "In-depth knowledge of organic, inorganic & physical chemistry",
   },
 
   // 🟢 NEET Tutors
@@ -88,25 +93,59 @@ const tutors = [
     category: "CSE",
     description: "Expert in algorithmic complexity and optimization",
   },
-]
+];
 
 // Available Categories
-const categories = ["All", "JEE", "NEET", "CSE"]
+const categories = ["All", "JEE", "NEET", "CSE"];
 
 export default function AITutors() {
-  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [user] = useAuthState(auth);
+  const router = useRouter();
 
   // Filter tutors based on category selection
-  const filteredTutors = selectedCategory === "All" ? tutors : tutors.filter((t) => t.category === selectedCategory)
+  const filteredTutors =
+    selectedCategory === "All"
+      ? tutors
+      : tutors.filter((t) => t.category === selectedCategory);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      // Create tutor document
+      const tutorRef = await addDoc(
+        collection(db, "users", user.uid, "tutors"),
+        {
+          name: "New Tutor",
+          subject: "New Subject",
+          course: "New Course",
+          examCategory: null,
+          createdAt: serverTimestamp(),
+        }
+      );
+
+      // Redirect to chat with the new tutor
+      router.push(`/ai-tutors/chat?subject=New%20Subject&course=New%20Course`);
+    } catch (error) {
+      console.error("Error creating tutor:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen text-black py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* 🔹 Page Title */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
           <h1 className="text-4xl font-bold mb-4">Meet Your AI Tutors</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Learn from specialized AI tutors, each trained in their respective fields.
+            Learn from specialized AI tutors, each trained in their respective
+            fields.
           </p>
         </motion.div>
 
@@ -117,7 +156,9 @@ export default function AITutors() {
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`px-4 py-2 rounded-lg font-semibold transition ${
-                selectedCategory === category ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                selectedCategory === category
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               {category}
@@ -151,7 +192,9 @@ export default function AITutors() {
                     {tutor.category}
                   </span>
                 </div>
-                <p className="text-gray-600 text-sm mb-4">{tutor.description}</p>
+                <p className="text-gray-600 text-sm mb-4">
+                  {tutor.description}
+                </p>
                 <Link
                   href={`/subject/${formatSubjectSlug(tutor.subject)}`}
                   className="inline-flex items-center justify-center w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300"
@@ -171,16 +214,18 @@ export default function AITutors() {
             className="bg-gray-300 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex items-center justify-center"
           >
             <Link
-              href="/create-tutor"
+              href="/ai-tutors/create"
               className="flex flex-col items-center py-12 px-8 text-center text-gray-700 hover:text-blue-600"
             >
               <span className="text-5xl mb-4">➕</span>
               <h3 className="text-lg font-semibold">Create Your Own Tutor</h3>
-              <p className="text-gray-600 text-sm">Customize an AI tutor for your learning needs</p>
+              <p className="text-gray-600 text-sm">
+                Customize an AI tutor for your learning needs
+              </p>
             </Link>
           </motion.div>
         </div>
       </div>
     </div>
-  )
+  );
 }
