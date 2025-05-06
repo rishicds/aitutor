@@ -8,7 +8,7 @@ import pdf from 'pdf-parse/lib/pdf-parse';
 import { db } from '@/lib/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 
-console.log("Loading /api/process-pdf route...");
+// console.log("Loading /api/process-pdf route..."); // Removed to avoid build-time log
 
 // Helper to check for necessary environment variables
 function checkEnvVars(vars: string[]): string | null {
@@ -26,43 +26,80 @@ const requiredEnvVars = [
   'OPENAI_API_KEY'
 ];
 
-const missingVar = checkEnvVars(requiredEnvVars);
+// Declare clients at module level, but initialize lazily
 let pinecone: Pinecone | null = null;
 let pineconeIndex: Index | null = null;
 let embeddings: OpenAIEmbeddings | null = null;
+let initializationError: string | null = null;
 
-if (missingVar) {
-  console.error(`Missing environment variable in /api/process-pdf: ${missingVar}. Route will not function correctly.`);
-} else {
+async function initializePdfProcessingClients() {
+  if (pinecone && pineconeIndex && embeddings) {
+    console.log("PDF Processing clients already initialized.");
+    return;
+  }
+  console.log("Attempting to initialize PDF Processing clients...");
+
+  const missingVar = checkEnvVars(requiredEnvVars);
+  if (missingVar) {
+    initializationError = `Missing environment variable for PDF Processing: ${missingVar}.`;
+    console.error(initializationError);
+    // No need to throw here, let the POST handler deal with it.
+    return;
+  }
+
   try {
-    console.log("Initializing Pinecone client...");
-    pinecone = new Pinecone({
+    console.log("Initializing Pinecone client for PDF processing...");
+    const pc = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY!,
     });
-    console.log("Accessing Pinecone index:", process.env.PINECONE_INDEX_NAME!);
-    if (!process.env.PINECONE_INDEX_NAME) throw new Error ("PINECONE_INDEX_NAME not set");
-    pineconeIndex = pinecone.index(process.env.PINECONE_INDEX_NAME);
-    console.log("Pinecone initialized successfully.");
+    console.log("Accessing Pinecone index for PDF processing:", process.env.PINECONE_INDEX_NAME!);
+    if (!process.env.PINECONE_INDEX_NAME) throw new Error("PINECONE_INDEX_NAME not set for PDF processing");
+    const pi = pc.index(process.env.PINECONE_INDEX_NAME);
+    console.log("Pinecone initialized successfully for PDF processing.");
 
-    console.log("Initializing OpenAIEmbeddings with model text-embedding-3-small...");
-    embeddings = new OpenAIEmbeddings({
+    console.log("Initializing OpenAIEmbeddings for PDF processing with model text-embedding-3-small...");
+    const em = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY!,
       modelName: "text-embedding-3-small",
     });
-    console.log("OpenAIEmbeddings initialized successfully.");
+    console.log("OpenAIEmbeddings initialized successfully for PDF processing.");
+    
+    // Assign to module-level variables only on successful initialization
+    pinecone = pc;
+    pineconeIndex = pi;
+    embeddings = em;
+    initializationError = null; // Clear any previous error
+
   } catch (initError) {
-    console.error("Error during initialization in /api/process-pdf:", initError);
+    initializationError = `Error during initialization in /api/process-pdf: ${initError instanceof Error ? initError.message : String(initError)}`;
+    console.error(initializationError, initError);
+    // Reset to null if partial initialization occurred
     pinecone = null;
+    pineconeIndex = null;
     embeddings = null;
   }
 }
 
 export async function POST(req: Request) {
-  console.log("Received POST request on /api/process-pdf");
-  if (missingVar || !pinecone || !pineconeIndex || !embeddings) {
-    console.error("API Misconfiguration: Environment variables missing or initialization failed.");
-    return NextResponse.json({ error: `Server misconfiguration: ${missingVar ? `Missing env var ${missingVar}` : 'Initialization failed.'} Please check server logs.` }, { status: 500 });
+  // Ensure clients are initialized
+  if (!pinecone || !pineconeIndex || !embeddings) {
+    await initializePdfProcessingClients();
   }
+
+  // Check if initialization failed or there are still missing clients
+  if (initializationError) {
+    console.error("PDF Processing API Misconfiguration:", initializationError);
+    return NextResponse.json({ error: `Server misconfiguration: ${initializationError} Please check server logs.` }, { status: 500 });
+  }
+  if (!pinecone || !pineconeIndex || !embeddings) {
+    // This case should ideally be caught by initializationError, but as a safeguard:
+    console.error("PDF Processing API Misconfiguration: Clients not initialized and no specific error recorded.");
+    return NextResponse.json({ error: "Server misconfiguration: Critical clients not initialized. Please check server logs." }, { status: 500 });
+  }
+  
+  console.log("Received POST request on /api/process-pdf");
+  // The check for missingVar is now part of initializePdfProcessingClients
+  // The direct check for !pinecone || !pineconeIndex || !embeddings remains important
 
   let pdfIdForErrorLogging: string | null = null; 
 
