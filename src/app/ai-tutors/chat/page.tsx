@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebaseConfig";
@@ -14,7 +14,8 @@ interface Message {
   content: string;
 }
 
-export default function ChatPage() {
+// New component to contain the original ChatPage logic
+function ChatPageContent() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -233,5 +234,14 @@ export default function ChatPage() {
 
       <ChatHistory />
     </div>
+  );
+}
+
+// Default export wraps the new component with Suspense
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>Loading chat...</div>}>
+      <ChatPageContent />
+    </Suspense>
   );
 }

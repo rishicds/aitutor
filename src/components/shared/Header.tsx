@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebaseConfig"
 import { signOut } from "firebase/auth"
 import { type Dispatch, type JSX, type SetStateAction, useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { FiHome, FiBookOpen, FiZap, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiMenu, FiX, FiImage } from "react-icons/fi"
+import { FiHome, FiBookOpen, FiZap, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiMenu, FiX, FiImage, FiCpu, FiSettings } from "react-icons/fi"
 
 const ResponsiveNavigation = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -70,7 +70,7 @@ const DesktopSideNav = () => {
           <span className="sr-only">Dashboard</span>
         </NavItem>
         <NavItem selected={selected === 2} id={2} setSelected={setSelected} link="/ai-tutors">
-          <FiUser />
+          <FiCpu />
           <span className="sr-only">AI Tutors</span>
         </NavItem>
         <NavItem selected={selected === 3} id={3} setSelected={setSelected} link="/pyq">
@@ -92,6 +92,10 @@ const DesktopSideNav = () => {
         <NavItem selected={selected === 7} id={7} setSelected={setSelected} link="/lab">
           <FiZap />
           <span className="sr-only">Laboratory</span>
+        </NavItem>
+        <NavItem selected={selected === 8} id={8} setSelected={setSelected} link="/admin">
+          <FiSettings />
+          <span className="sr-only">Admin</span>
         </NavItem>
 
 
@@ -142,7 +146,7 @@ const MobileNavigation = ({
           </div>
 
           <MobileNavItem selected={selected === 2} id={2} setSelected={setSelected} link="/ai-tutors">
-            <FiUser size={22} />
+            <FiCpu size={22} />
             <span className="text-xs mt-1">Tutors</span>
           </MobileNavItem>
           <MobileNavItem selected={selected === 3} id={3} setSelected={setSelected} link="/pyq">
