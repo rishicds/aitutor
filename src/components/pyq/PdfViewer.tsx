@@ -1,19 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Send } from "lucide-react"
+import { Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react"
 
 interface PdfViewerProps {
   pdfUrl: string
-  onAskQuestion: (question: string) => void
 }
 
-export default function PdfViewer({ pdfUrl, onAskQuestion }: PdfViewerProps) {
+export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   const [loading, setLoading] = useState(true)
   const [pageNumber, setPageNumber] = useState(1)
   const [numPages, setNumPages] = useState(0)
   const [scale, setScale] = useState(1)
-  const [question, setQuestion] = useState("")
 
   const changePage = (offset: number) => {
     setPageNumber((prevPageNumber) => {
@@ -30,24 +28,13 @@ export default function PdfViewer({ pdfUrl, onAskQuestion }: PdfViewerProps) {
     setScale((prevScale) => Math.max(prevScale - 0.2, 0.5))
   }
 
-  const handleAskQuestion = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (question.trim()) {
-      onAskQuestion(question)
-      setQuestion("")
-    }
-  }
-
-  // When the iframe loads, we'll try to determine the number of pages
   const handleIframeLoad = () => {
     setLoading(false)
-    // For a real app, you might need to use a PDF.js or similar library
-    // to get the actual number of pages. For now, we'll set a placeholder.
-    setNumPages(10) // placeholder
+    setNumPages(10)
   }
 
   return (
-    <div className="flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="flex flex-col h-full rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-200 bg-lavender-50 px-4 py-3">
         <div className="flex items-center">
           <button
@@ -87,9 +74,9 @@ export default function PdfViewer({ pdfUrl, onAskQuestion }: PdfViewerProps) {
         </div>
       </div>
 
-      <div className="relative h-[70vh] overflow-auto bg-gray-100 p-4">
+      <div className="relative flex-grow overflow-auto bg-gray-100 p-4">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
             <Loader2 className="h-8 w-8 animate-spin text-lavender-600" />
           </div>
         )}
@@ -97,36 +84,21 @@ export default function PdfViewer({ pdfUrl, onAskQuestion }: PdfViewerProps) {
         <div
           style={{
             transform: `scale(${scale})`,
-            transformOrigin: "top left",
+            transformOrigin: "top center",
             transition: "transform 0.2s",
+            width: "100%",
+            height: loading ? "0" : "100%",
           }}
+          className="overflow-visible"
         >
           <iframe
             src={`${pdfUrl}#view=FitH&page=${pageNumber}`}
-            className="h-[70vh] w-full"
+            className="h-full w-full border-0"
             onLoad={handleIframeLoad}
+            scrolling="no"
           ></iframe>
         </div>
       </div>
-
-      <form onSubmit={handleAskQuestion} className="border-t border-gray-200 p-4">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:border-lavender-500 focus:outline-none"
-            placeholder="Ask a question about this PDF..."
-          />
-          <button
-            type="submit"
-            disabled={!question.trim()}
-            className="rounded-lg bg-lavender-600 px-4 py-2 font-medium text-white hover:bg-lavender-700 disabled:opacity-50"
-          >
-            <Send className="h-5 w-5" />
-          </button>
-        </div>
-      </form>
     </div>
   )
 }

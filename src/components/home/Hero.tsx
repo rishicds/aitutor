@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react"
 import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from "framer-motion"
 import { FiArrowDown } from "react-icons/fi"
+import Link from "next/link"
 //ignore eslint for entire page
 /* eslint-disable */
 export const Hero = () => {
@@ -426,30 +427,32 @@ const CenterCopy = ({ mouseXSpring, mouseYSpring }: { mouseXSpring: any; mouseYS
           delay: 1.5,
         }}
       >
-        <motion.button
-          whileHover={{
-            scale: 1.05,
-            boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.4)",
-          }}
-          whileTap={{ scale: 0.95 }}
-          className="relative bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-medium overflow-hidden group"
-        >
-          <motion.span
-            className="absolute inset-0 w-full h-full bg-blue-500 -z-10"
-            initial={{ x: "-100%", opacity: 0 }}
-            whileHover={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          />
-          Start Learning
-          <motion.span
-            className="absolute top-0 left-0 w-full h-full bg-white mix-blend-overlay opacity-0 -z-10"
+        <Link href="/signin">
+          <motion.button
             whileHover={{
-              opacity: [0, 0.2, 0],
-              x: ["0%", "150%"],
+              scale: 1.05,
+              boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.4)",
             }}
-            transition={{ duration: 1, ease: "easeInOut" }}
-          />
-        </motion.button>
+            whileTap={{ scale: 0.95 }}
+            className="relative bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-medium overflow-hidden group"
+          >
+            <motion.span
+              className="absolute inset-0 w-full h-full bg-blue-500 -z-10"
+              initial={{ x: "-100%", opacity: 0 }}
+              whileHover={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            />
+            Start Learning
+            <motion.span
+              className="absolute top-0 left-0 w-full h-full bg-white mix-blend-overlay opacity-0 -z-10"
+              whileHover={{
+                opacity: [0, 0.2, 0],
+                x: ["0%", "150%"],
+              }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+            />
+          </motion.button>
+        </Link>
       </motion.div>
     </motion.div>
   )

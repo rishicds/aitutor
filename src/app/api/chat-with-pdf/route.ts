@@ -86,10 +86,10 @@ async function initializeChatClients() {
 }
 
 const promptTemplate = `You are an AI assistant helping students with questions about a Previous Year Question (PYQ) paper titled "{pdfTitle}".
-Use ONLY the following pieces of context from the PDF to answer the question. The context contains relevant excerpts from the PDF.
-If the answer is not found within the provided context, explicitly state "The answer to your question is not found in the provided context of this PDF." Do not try to make up an answer or use external knowledge.
+Primarily use the following pieces of context from the PDF to answer the question. The context contains relevant excerpts from the PDF.
+If the answer is not found or cannot be confidently inferred from the provided context, you may use external knowledge to answer the question. If you use external knowledge, please explicitly state that the information comes from external sources and not the PDF.
 If the question is a greeting, a general comment, or clearly not related to the content of the PDF, politely respond that you can only answer questions about the content of the PYQ paper "{pdfTitle}".
-Keep your answers concise and directly based on the provided context.
+Keep your answers concise.
 
 Context from "{pdfTitle}":
 {context}

@@ -5,7 +5,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { auth, db } from "@/lib/firebaseConfig"
 import { doc, getDoc, updateDoc, increment, collection, getDocs, query, where } from "firebase/firestore"
 import { getGeminiResponse, generatePracticeQuestions } from "@/lib/gemini"
-import { Loader2, BookOpen, Download, Share2, Bookmark, Search, Send, Check, X, PlusCircle, AlertCircle, ChevronUp, ChevronDown, File, FileText } from 'lucide-react'
+import { Loader2, BookOpen, Download, Share2, Bookmark, Search, Send, Check, X, PlusCircle, AlertCircle, ChevronUp, ChevronDown, File, FileText, Coins } from 'lucide-react'
 import ReactMarkdown from "react-markdown"
 import PdfViewer from "@/components/pyq/PdfViewer"
 import PdfViewerTab from "@/components/pyq/PdfViewerTab"
@@ -567,55 +567,6 @@ export default function PyqChatPage() {
     }
   }
 
-  // Handle PDF question submission
-  const handleAskPdfQuestion = async (question: string) => {
-    if (!user || !selectedPdf || tokens < 1) return
-    
-    setProcessingPdfQuestion(true)
-    setPdfQuestion(question)
-    setPdfAnswer("")
-    
-    try {
-      // Create a prompt that includes information about the PDF
-      const prompt = `
-        Answer the following question about the ${selectedPdf.subject} PDF titled "${selectedPdf.title}" from year ${selectedPdf.year}:
-        
-        ${question}
-        
-        If you don't have enough information to answer the question directly from the PDF content, please provide a general answer based on the subject and explain that it's a general response.
-      `
-      
-      const tutorParams = {
-        subject: selectedPdf.subject,
-        topic: selectedPdf.title,
-        personality: "friendly" as "friendly" | "strict" | "neutral",
-        level: (selectedPdf.difficulty === "easy" ? "beginner" : selectedPdf.difficulty === "medium" ? "intermediate" : "expert") as
-          | "beginner"
-          | "intermediate"
-          | "expert",
-        teachingStyle: "example-based" as "conceptual" | "example-based" | "problem-solving",
-      }
-      
-      const aiResponse = await getGeminiResponse(prompt, tutorParams)
-      setPdfAnswer(aiResponse)
-      
-      // Deduct a token
-      try {
-        const userRef = doc(db, "users", user.uid)
-        await updateDoc(userRef, {
-          tokens: increment(-1),
-        })
-        setTokens(tokens - 1)
-      } catch (error) {
-        console.error("Error updating tokens:", error)
-      }
-    } catch (error) {
-      console.error("Error getting answer:", error)
-    } finally {
-      setProcessingPdfQuestion(false)
-    }
-  }
-
   const subjects = ["all", ...Array.from(new Set(pyqs.map((pyq) => pyq.subject)))]
 
   const DifficultyBadge = ({ difficulty }: { difficulty: "easy" | "medium" | "hard" }) => {
@@ -641,15 +592,25 @@ export default function PyqChatPage() {
   }
 
   const handleSendMessage = async (e?: FormEvent) => {
-    if (e) e.preventDefault()
-    if (!userInput.trim() || !selectedPdf) return
+    if (e) e.preventDefault();
 
-    const userMessageText = userInput
-    const userMessage: Message = { id: Date.now().toString(), text: userMessageText, sender: 'user' }
-    setChatMessages(prev => [...prev, userMessage])
-    setUserInput('')
-    setIsChatLoading(true)
-    setChatError(null)
+    if (!user) {
+      console.error("User not authenticated. Cannot send message.");
+      setChatError("You must be logged in to chat.");
+      return;
+    }
+    if (tokens < 1) {
+      setChatError("You don\'t have enough tokens to send a message. Please acquire more tokens.");
+      return;
+    }
+    if (!userInput.trim() || !selectedPdf) return;
+
+    const userMessageText = userInput;
+    const userMessage: Message = { id: Date.now().toString(), text: userMessageText, sender: 'user' };
+    setChatMessages(prev => [...prev, userMessage]);
+    setUserInput('');
+    setIsChatLoading(true);
+    setChatError(null); // Clear previous errors before sending
 
     try {
       const response = await fetch('/api/chat-with-pdf', {
@@ -660,33 +621,47 @@ export default function PyqChatPage() {
           pdfId: selectedPdf.id, 
           pdfTitle: selectedPdf.title 
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.error || 'Failed to get response from the AI. Please try again.')
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to get response from the AI. Please try again.');
       }
 
-      const aiResponse = await response.json()
+      const aiResponse = await response.json();
       const aiMessage: Message = { 
         id: (Date.now() + 1).toString(), 
         text: aiResponse.answer || "No answer received.", 
         sender: 'ai',
         sources: aiResponse.sources 
+      };
+      setChatMessages(prev => [...prev, aiMessage]);
+
+      // Deduct a token after successful AI response
+      try {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          tokens: increment(-1),
+        });
+        setTokens(prevTokens => prevTokens - 1);
+        console.log("Token deducted for chat message. New token count:", tokens - 1); // For debugging
+      } catch (tokenError) {
+        console.error("Error updating tokens after chat message:", tokenError);
+        // Optionally, notify the user or log this more formally
+        // For now, the chat itself succeeded, so we might not show a chat error for this
       }
-      setChatMessages(prev => [...prev, aiMessage])
 
     } catch (err: any) {
-      console.error("Chat API error:", err)
-      setChatError(err.message || "Could not get a response from the AI. Please check the console for more details.")
+      console.error("Chat API error:", err);
+      setChatError(err.message || "Could not get a response from the AI. Please check the console for more details.");
       const errorMessage: Message = { 
         id: (Date.now() + 1).toString(), 
         text: `Error: ${err.message || "Could not get a response."}`,
         sender: 'ai' 
-      }
-      setChatMessages(prev => [...prev, errorMessage])
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsChatLoading(false)
+      setIsChatLoading(false);
     }
   }
 
@@ -704,9 +679,15 @@ export default function PyqChatPage() {
       {/* PDF List Sidebar */} 
       <div className="md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-semibold text-lavender-800 flex items-center">
+          <h2 className="text-xl font-semibold text-lavender-800 flex items-center mb-2">
             <BookOpen className="w-6 h-6 mr-2 text-lavender-600" /> PYQ Chat Index
           </h2>
+          {user && (
+            <div className="flex items-center text-sm text-gray-600">
+              <Coins className="w-4 h-4 mr-1.5 text-yellow-500" />
+              <span>Tokens available: {tokens}</span>
+            </div>
+          )}
         </div>
         <div className="overflow-y-auto flex-grow p-3 space-y-2">
           {processedPdfs.length === 0 && pageError && (
@@ -753,15 +734,15 @@ export default function PyqChatPage() {
         <div className="flex-grow flex flex-row"> {/* This will contain PDF viewer and Chat side-by-side */}
           {/* PDF Viewer Area */}
           {showPdfViewer && selectedPdf && (
-            <div className="w-1/2 h-full border-r border-gray-200 flex flex-col">
+            <div className="flex-1 h-full border-r border-gray-200 flex flex-col">
               {/* You can use PdfViewer or PdfViewerTab here. For simplicity, using PdfViewer. */}
               {/* Adjust props for PdfViewer as needed based on its definition */}
-              <PdfViewer pdfUrl={selectedPdf.fileUrl} onAskQuestion={handleAskPdfQuestion} />
+              <PdfViewer pdfUrl={selectedPdf.fileUrl} />
             </div>
           )}
 
           {/* Chat Area */}
-          <div className={`flex-grow flex flex-col bg-white shadow-inner ${showPdfViewer && selectedPdf ? 'w-1/2' : 'w-full'}`}>
+          <div className={`flex-1 flex flex-col bg-white shadow-inner`}>
             <div className="p-4 border-b bg-lavender-50 shadow-sm sticky top-0 z-10">
               <h3 className="text-lg font-semibold text-lavender-800 truncate">Chatting with: {selectedPdf.title}</h3>
               <p className="text-xs text-lavender-600">Subject: {selectedPdf.subject} | Year: {selectedPdf.year}</p>
