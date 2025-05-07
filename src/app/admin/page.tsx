@@ -9,10 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import UserManagement from "@/components/admin/UserManagement"
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard"
 import PdfManagement from "@/components/admin/PdfManagement"
-import { Loader2 } from "lucide-react"
+import { Loader2, TagIcon } from "lucide-react"
 import { getAllUsers, updateUserRole, deleteUser } from "@/actions/admin-actions"; // Assuming you have this action
 import { User } from "@prisma/client"; // Assuming you have this type
 import { FiTrash2, FiEdit } from "react-icons/fi"; // Example icons
+import Link from 'next/link'; // Added Link import
 
 // Define a type for the user data if not already defined
 interface AdminPageUser extends User {
@@ -67,10 +68,11 @@ export default function AdminDashboard() {
       <h1 className="mb-8 text-3xl font-bold text-lavender-800">Admin Dashboard</h1>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="mb-6 grid w-full grid-cols-3">
+        <TabsList className="mb-6 grid w-full grid-cols-4">
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="pdfs">PYQ Management</TabsTrigger>
+          <TabsTrigger value="coupons">Coupon Management</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UserManagement />
@@ -80,6 +82,20 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="pdfs">
           <PdfManagement />
+        </TabsContent>
+        <TabsContent value="coupons">
+          <div className="p-4 bg-white rounded-lg shadow">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-700">Manage Coupons</h2>
+            <p className="mb-6 text-gray-600">
+              Create, view, and manage discount coupon codes for your platform.
+            </p>
+            <Link href="/admin/coupons" legacyBehavior>
+              <a className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <TagIcon className="mr-2 h-5 w-5" />
+                Go to Coupon Management Page
+              </a>
+            </Link>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

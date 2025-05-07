@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { auth, db } from "@/lib/firebaseConfig"
 import { doc, getDoc } from "firebase/firestore"
-import { Check, Sparkles, Star, Zap, CreditCard, Gift, ShieldCheck, Clock, Users, Award, TrendingUp } from "lucide-react"
+import { Check, Sparkles, Star, Zap, ShieldCheck, Clock, Users, Award, TrendingUp } from "lucide-react"
 
 const tokenPackages = [
   {
@@ -81,6 +81,9 @@ export default function PurchaseTokens() {
   const [loading, setLoading] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
+  const [couponCode, setCouponCode] = useState("")
+  const [discount, setDiscount] = useState(0)
+
   useEffect(() => {
     const script = document.createElement("script")
     script.src = "https://checkout.razorpay.com/v1/checkout.js"
@@ -108,124 +111,28 @@ export default function PurchaseTokens() {
     fetchUserTokens()
   }, [user])
 
-  const handlePurchase = async () => {
-    if (!user) {
-      alert("Please log in to make a purchase.")
-      return
-    }
-    setLoading(true)
+  const CGST_RATE = 0.09; // 9%
+  const SGST_RATE = 0.09; // 9%
+  const TOTAL_GST_RATE = CGST_RATE + SGST_RATE;
 
-    try {
-      // 1. Create Order on Server
-      const orderResponse = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: selectedPackage.price * 100 , // Amount in paisa
-          currency: "INR",
-          receipt: `receipt_order_${user.uid}_${Date.now()}`, // Example receipt
-          packageId: selectedPackage.id,
-          packageName: selectedPackage.id.replace("student", "") + " Plan",
-          tokens: selectedPackage.tokens,
-          userId: user.uid, // Pass userId for server-side token update
-        }),
-      })
+  const priceDetails = useMemo(() => {
+    const packageListedPrice_inclusive = selectedPackage.price;
+    const discountAmount = (packageListedPrice_inclusive * discount) / 100;
+    const finalPayableAmount_inclusive = packageListedPrice_inclusive - discountAmount;
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json()
-        throw new Error(errorData.error || "Failed to create Razorpay order.")
-      }
+    const taxableValue = finalPayableAmount_inclusive / (1 + TOTAL_GST_RATE);
+    const cgstComponent = taxableValue * CGST_RATE;
+    const sgstComponent = taxableValue * SGST_RATE;
 
-      const orderData = await orderResponse.json()
-
-      // 2. Open Razorpay Checkout
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "AI Tutor Platform - Tokens",
-        description: `Purchase ${selectedPackage.tokens} Tokens - ${selectedPackage.id.replace("student", "")} Plan`,
-        image: "/favicon.ico", // Replace with your logo URL
-        order_id: orderData.id,
-        handler: async function (response: any) {
-          // 3. Verify Payment on Server
-          try {
-            const verificationResponse = await fetch("/api/razorpay/verify-payment", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                userId: user.uid, // For server-side context
-                tokensToAdd: selectedPackage.tokens, // For server-side token update
-              }),
-            })
-
-            if (!verificationResponse.ok) {
-              const errorData = await verificationResponse.json()
-              throw new Error(errorData.error || "Payment verification failed.")
-            }
-
-            const verificationData = await verificationResponse.json()
-            
-            if (verificationData.verified) {
-              alert("Payment successful! Tokens added to your account.")
-              setCurrentTokens((prevTokens) => prevTokens + selectedPackage.tokens)
-              setShowConfetti(true)
-              setTimeout(() => setShowConfetti(false), 4000) // Increased confetti time
-            } else {
-              alert("Payment verification failed. Please contact support.")
-            }
-          } catch (verifyError: any) {
-            console.error("Payment verification error:", verifyError)
-            alert(`Payment verification failed: ${verifyError.message}`)
-          } finally {
-            setLoading(false)
-          }
-        },
-        prefill: {
-          name: user.displayName || "",
-          email: user.email || "",
-          contact: user.phoneNumber || "", // If available
-        },
-        notes: {
-          package: selectedPackage.id,
-          userId: user.uid,
-        },
-        theme: {
-          color: "#5B21B6", // Purple, can be adjusted
-        },
-      }
-      
-      // @ts-ignore // Razorpay is loaded from external script
-      const rzp = new window.Razorpay(options)
-      rzp.on("payment.failed", function (response: any) {
-        console.error("Razorpay payment failed:", response.error)
-        alert(
-          `Payment failed: ${response.error.description} (Reason: ${response.error.reason}, Step: ${response.error.step})`
-        )
-        setLoading(false)
-      })
-      rzp.open()
-
-    } catch (error: any) {
-      console.error("Purchase error:", error)
-      alert(`Purchase failed: ${error.message}`)
-      setLoading(false)
-    }
-    // Do not call setLoading(false) here if rzp.open() is called, as handler will manage it.
-    // However, if rzp.open() itself fails or order creation fails, it should be set.
-    // The current structure with finally in handler should work, but ensure initial error paths also setLoading(false).
-    // Added setLoading(false) in catch block for order creation / rzp init errors.
-  }
-
-  const [couponCode, setCouponCode] = useState("")
-  const [discount, setDiscount] = useState(0)
+    return {
+      packageListedPrice_inclusive,
+      discountAmount,
+      finalPayableAmount_inclusive,
+      taxableValue,
+      cgstComponent,
+      sgstComponent,
+    };
+  }, [selectedPackage, discount, TOTAL_GST_RATE]);
 
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === "welcome10") {
@@ -238,8 +145,131 @@ export default function PurchaseTokens() {
     }
   }
 
-  const calculateFinalPrice = () => {
-    return (selectedPackage.price * (100 - discount)) / 100
+  const handlePurchase = async () => {
+    if (!user) {
+      alert("Please log in to make a purchase.")
+      return
+    }
+    setLoading(true)
+
+    try {
+      const orderPayload = {
+        amount: Math.round(priceDetails.finalPayableAmount_inclusive * 100),
+        currency: "INR",
+        receipt: `receipt_order_${user.uid}_${Date.now()}`,
+        packageId: selectedPackage.id,
+        packageName: selectedPackage.id.replace("student", "") + " Plan",
+        tokens: selectedPackage.tokens,
+        userId: user.uid,
+      }
+
+      const orderResponse = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderPayload),
+      })
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json() as { error?: string }
+        throw new Error(errorData.error || "Failed to create Razorpay order.")
+      }
+
+      const orderData = await orderResponse.json() as { id: string; amount: number; currency: string }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "AI Tutor Platform - Tokens",
+        description: `Purchase ${selectedPackage.tokens} Tokens - ${selectedPackage.id.replace("student", "")} Plan`,
+        image: "/favicon.ico",
+        order_id: orderData.id,
+        handler: async function (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) {
+          try {
+            const verificationPayload = {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              userId: user.uid,
+              tokensToAdd: selectedPackage.tokens,
+            }
+            const verificationResponse = await fetch("/api/razorpay/verify-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(verificationPayload),
+            })
+
+            if (!verificationResponse.ok) {
+              const errorData = await verificationResponse.json() as { error?: string }
+              throw new Error(errorData.error || "Payment verification failed.")
+            }
+
+            const verificationData = await verificationResponse.json() as { verified: boolean }
+            
+            if (verificationData.verified) {
+              alert("Payment successful! Tokens added to your account.")
+              setCurrentTokens((prevTokens) => prevTokens + selectedPackage.tokens)
+              setShowConfetti(true)
+              setTimeout(() => setShowConfetti(false), 4000)
+            } else {
+              alert("Payment verification failed. Please contact support.")
+            }
+          } catch (verifyError) {
+            const error = verifyError as Error
+            console.error("Payment verification error:", error)
+            alert(`Payment verification failed: ${error.message}`)
+          } finally {
+            setLoading(false)
+          }
+        },
+        prefill: {
+          name: user.displayName || "",
+          email: user.email || "",
+          contact: user.phoneNumber || "",
+        },
+        notes: {
+          package: selectedPackage.id,
+          userId: user.uid,
+        },
+        theme: {
+          color: "#5B21B6",
+        },
+      }
+      
+      // @ts-expect-error Razorpay is loaded from external script and attached to window
+      const rzp = new window.Razorpay(options)
+      rzp.on("payment.failed", function (response: { 
+        error: { 
+          code: string; 
+          description: string; 
+          reason: string; 
+          step: string; 
+          source?: string;
+          metadata?: object;
+        }
+      }) {
+        console.error("Razorpay payment failed:", response.error)
+        alert(
+          `Payment failed: ${response.error.description} (Reason: ${response.error.reason}, Step: ${response.error.step})`
+        )
+        setLoading(false)
+      })
+      rzp.open()
+
+    } catch (error) {
+      const err = error as Error
+      console.error("Purchase error:", err)
+      alert(`Purchase failed: ${err.message}`)
+      setLoading(false)
+    }
   }
 
   return (
@@ -395,40 +425,60 @@ export default function PurchaseTokens() {
 
               <div>
                 <h3 className="text-lg font-semibold mb-2 text-gray-800">Payment Method</h3>
-                <div className="flex space-x-4">
-                  <div className="flex-1 bg-gray-100 p-4 rounded-lg border-2 border-purple-500 flex items-center space-x-3 cursor-pointer">
-                    <CreditCard className="h-6 w-6 text-purple-600" />
-                    <span className="text-gray-800 font-medium">Credit/Debit Card</span>
-                  </div>
-                  <div className="flex-1 bg-gray-100 p-4 rounded-lg border border-gray-300 flex items-center space-x-3 cursor-pointer opacity-70">
-                    <Gift className="h-6 w-6 text-gray-500" />
-                    <span className="text-gray-700">UPI (Soon)</span>
-                  </div>
+                <div className="bg-gray-100 p-4 rounded-lg border-2 border-purple-500 flex items-center space-x-3">
+                  {/* You can use a Razorpay logo/icon here if you have one */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-purple-600"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> {/* Generic payment icon, replace if you have Razorpay logo */}
+                  <span className="text-gray-800 font-medium">Secure Payment via Razorpay</span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">All major cards, UPI, Netbanking, and Wallets supported.</p>
               </div>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 flex flex-col justify-between">
               <div>
                 <h3 className="text-xl font-semibold mb-4 text-gray-800">Order Summary</h3>
-                <div className="space-y-3">
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-gray-700">
-                    <span>Selected Plan: <span className="font-medium text-purple-700">{selectedPackage.id.replace("student", "")}</span></span>
+                    <span>Package: <span className="font-medium text-purple-700">{selectedPackage.id.replace("student", "")}</span></span>
                     <span>{selectedPackage.tokens} Tokens</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
-                    <span>Base Price:</span>
-                    <span className="font-medium">₹{selectedPackage.price}</span>
+                    <span>Package Price (Incl. Tax):</span>
+                    <span className="font-medium">₹{priceDetails.packageListedPrice_inclusive.toFixed(2)}</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount ({discount}%):</span>
-                      <span className="font-medium">-₹{((selectedPackage.price * discount) / 100).toFixed(2)}</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between text-orange-600">
+                        <span>Discount ({discount}%):</span>
+                        <span className="font-medium">-₹{priceDetails.discountAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-800 font-semibold pt-1 border-t border-gray-200 mt-1">
+                        <span>Final Price (Incl. Tax):</span>
+                        <span className="font-medium">₹{priceDetails.finalPayableAmount_inclusive.toFixed(2)}</span>
+                      </div>
+                    </>
                   )}
-                  <div className="flex justify-between border-t border-gray-300 pt-3 mt-3 text-xl font-bold text-gray-900">
-                    <span>Total Amount:</span>
-                    <span>₹{calculateFinalPrice().toFixed(2)}</span>
+
+                  {/* Tax Breakdown based on Final Payable Amount (or Package Price if no discount) */}
+                  <div className="pt-2 mt-2 border-t-2 border-dashed border-gray-300">
+                    <p className="text-xs text-gray-500 mb-1">Price Breakdown (of Final Price):</p>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Taxable Value:</span>
+                      <span className="font-medium">₹{priceDetails.taxableValue.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>CGST ({CGST_RATE * 100}%):</span>
+                      <span className="font-medium">+₹{priceDetails.cgstComponent.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>SGST ({SGST_RATE * 100}%):</span>
+                      <span className="font-medium">+₹{priceDetails.sgstComponent.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between border-t-2 border-gray-300 pt-2 mt-2 text-lg font-bold text-gray-900">
+                    <span>Total Amount Payable:</span>
+                    <span>₹{priceDetails.finalPayableAmount_inclusive.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
