@@ -1,68 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { db } from '@/lib/firebaseConfig';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
+import { type NextRequest, NextResponse } from "next/server"
+import { GoogleGenerativeAI } from "@google/generative-ai"
+import { db } from "@/lib/firebaseConfig"
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { v4 as uuidv4 } from "uuid"
 
 // Initialize Google AI
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
 
 interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  keyPoints?: string[];
-  videoSearchQuery?: string;
-  articleTitle?: string;
-  order: number;
-  completed: boolean;
-  nextTopics?: string[];
-  resources?: Resource[];
+  id: string
+  title: string
+  description: string
+  keyPoints?: string[]
+  videoSearchQuery?: string
+  articleTitle?: string
+  order: number
+  completed: boolean
+  nextTopics?: string[]
+  resources?: Resource[]
 }
 
 interface Resource {
-  id: string;
-  title: string;
-  url: string;
-  type: 'video' | 'article' | 'other';
-  platform: string;
-  description: string;
+  id: string
+  title: string
+  url: string
+  type: "video" | "article" | "other"
+  platform: string
+  description: string
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { roadmapId, userId } = await request.json();
-    
-    if (!roadmapId || !userId) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    const { roadmapId, sessionId } = await request.json()
+
+    if (!roadmapId || !sessionId) {
+      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
-    
+
     // Get the roadmap document
-    const roadmapRef = doc(db, 'roadmaps', roadmapId);
-    const roadmapSnap = await getDoc(roadmapRef);
-    
+    const roadmapRef = doc(db, "roadmaps", roadmapId)
+    const roadmapSnap = await getDoc(roadmapRef)
+
     if (!roadmapSnap.exists()) {
-      return NextResponse.json({ error: 'Roadmap not found' }, { status: 404 });
+      return NextResponse.json({ error: "Roadmap not found" }, { status: 404 })
     }
-    
-    const roadmapData = roadmapSnap.data();
-    
-    // Ensure the roadmap belongs to the user
-    if (roadmapData.userId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized access to roadmap' }, { status: 403 });
+
+    const roadmapData = roadmapSnap.data()
+
+    // Ensure the roadmap belongs to the session
+    if (roadmapData.sessionId !== sessionId) {
+      return NextResponse.json({ error: "Unauthorized access to roadmap" }, { status: 403 })
     }
-    
+
     // Get the syllabus text
-    const syllabusText = roadmapData.syllabusText;
-    
+    const syllabusText = roadmapData.syllabusText
+
     if (!syllabusText) {
       await updateDoc(roadmapRef, {
-        status: 'error',
-        description: 'No syllabus text found to process.'
-      });
-      return NextResponse.json({ error: 'No syllabus text found' }, { status: 400 });
+        status: "error",
+        description: "No syllabus text found to process.",
+      })
+      return NextResponse.json({ error: "No syllabus text found" }, { status: 400 })
     }
-    
+
     // Initialize Gemini AI model
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
         topP: 0.8,
         maxOutputTokens: 8192,
       },
-    });
-    
+    })
+
     // Extract course information
     const coursePrompt = `
     You are an education expert analyzing a course syllabus. Extract the following information from the syllabus:
@@ -90,25 +90,25 @@ export async function POST(request: NextRequest) {
     
     Here is the syllabus text:
     ${syllabusText.substring(0, 15000)}
-    `;
-    
-    const courseResult = await model.generateContent(coursePrompt);
-    const courseResponse = await courseResult.response;
-    const courseText = courseResponse.text();
-    
-    let courseInfo;
+    `
+
+    const courseResult = await model.generateContent(coursePrompt)
+    const courseResponse = await courseResult.response
+    const courseText = courseResponse.text()
+
+    let courseInfo
     try {
       // Try to parse the JSON response
-      courseInfo = JSON.parse(courseText.replace(/```json|```/g, '').trim());
+      courseInfo = JSON.parse(courseText.replace(/```json|```/g, "").trim())
     } catch (error) {
-      console.error('Error parsing course info JSON:', error);
+      console.error("Error parsing course info JSON:", error)
       courseInfo = {
-        courseTitle: 'Untitled Course',
-        courseDescription: 'A learning roadmap based on your syllabus.',
-        courseLevel: 'Not specified'
-      };
+        courseTitle: "Untitled Course",
+        courseDescription: "A learning roadmap based on your syllabus.",
+        courseLevel: "Not specified",
+      }
     }
-    
+
     // Extract topics and organize them
     const topicsPrompt = `
     You are an AI education assistant helping create a learning roadmap from a course syllabus.
@@ -143,107 +143,111 @@ export async function POST(request: NextRequest) {
     
     Here is the syllabus text:
     ${syllabusText.substring(0, 25000)}
-    `;
-    
-    const topicsResult = await model.generateContent(topicsPrompt);
-    const topicsResponse = await topicsResult.response;
-    const topicsText = topicsResponse.text();
-    
-    let topicsList;
+    `
+
+    const topicsResult = await model.generateContent(topicsPrompt)
+    const topicsResponse = await topicsResult.response
+    const topicsText = topicsResponse.text()
+
+    let topicsList
     try {
       // Try to parse the JSON response
-      topicsText.replace(/```json|```/g, '').trim();
-      topicsList = JSON.parse(topicsText.replace(/```json|```/g, '').trim());
+      topicsText.replace(/```json|```/g, "").trim()
+      topicsList = JSON.parse(topicsText.replace(/```json|```/g, "").trim())
     } catch (error) {
-      console.error('Error parsing topics JSON:', error);
-      topicsList = [];
+      console.error("Error parsing topics JSON:", error)
+      topicsList = []
     }
-    
+
     // Process each topic to add resources
-    const processedTopics = topicsList.map((topic: {
-      title: string;
-      description: string;
-      keyPoints?: string[];
-      videoSearchQuery?: string;
-      articleTitle?: string;
-      order?: number;
-    }) => {
-      // Generate a unique ID for the topic
-      const topicId = uuidv4();
-      
-      // Create video resource
-      const videoResource = {
-        id: uuidv4(),
-        title: `${topic.title} - Video Tutorial`,
-        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(topic.videoSearchQuery || topic.title + ' tutorial')}`,
-        type: 'video' as const,
-        platform: 'YouTube',
-        description: `Learn about ${topic.title} through video tutorials`
-      };
-      
-      // Create article resource
-      const articleResource = {
-        id: uuidv4(),
-        title: topic.articleTitle || `${topic.title} - Comprehensive Guide`,
-        url: `https://scholar.google.com/scholar?q=${encodeURIComponent(topic.articleTitle || topic.title)}`,
-        type: 'article' as const,
-        platform: 'Google Scholar',
-        description: `Deepen your understanding of ${topic.title} through academic articles`
-      };
-      
-      // Return the processed topic
-      return {
-        id: topicId,
-        title: topic.title,
-        description: topic.description,
-        keyPoints: topic.keyPoints || [],
-        completed: false,
-        order: topic.order || 0,
-        resources: [videoResource, articleResource]
-      };
-    });
-    
+    const processedTopics = topicsList.map(
+      (topic: {
+        title: string
+        description: string
+        keyPoints?: string[]
+        videoSearchQuery?: string
+        articleTitle?: string
+        order?: number
+      }) => {
+        // Generate a unique ID for the topic
+        const topicId = uuidv4()
+
+        // Create video resource
+        const videoResource = {
+          id: uuidv4(),
+          title: `${topic.title} - Video Tutorial`,
+          url: `https://www.youtube.com/results?search_query=${encodeURIComponent(topic.videoSearchQuery || topic.title + " tutorial")}`,
+          type: "video" as const,
+          platform: "YouTube",
+          description: `Learn about ${topic.title} through video tutorials`,
+        }
+
+        // Create article resource
+        const articleResource = {
+          id: uuidv4(),
+          title: topic.articleTitle || `${topic.title} - Comprehensive Guide`,
+          url: `https://scholar.google.com/scholar?q=${encodeURIComponent(topic.articleTitle || topic.title)}`,
+          type: "article" as const,
+          platform: "Google Scholar",
+          description: `Deepen your understanding of ${topic.title} through academic articles`,
+        }
+
+        // Return the processed topic
+        return {
+          id: topicId,
+          title: topic.title,
+          description: topic.description,
+          keyPoints: topic.keyPoints || [],
+          completed: false,
+          order: topic.order || 0,
+          resources: [videoResource, articleResource],
+        }
+      },
+    )
+
     // Enhance with next topic recommendations
     const enhancedTopics = processedTopics.map((topic: Topic, index: number) => {
       // Determine next topics (usually the next 1-2 topics in sequence)
-      const nextTopics = [];
-      
+      const nextTopics = []
+
       if (index < processedTopics.length - 1) {
-        nextTopics.push(processedTopics[index + 1].id);
+        nextTopics.push(processedTopics[index + 1].id)
       }
-      
+
       // For some topics, add a second recommendation if available
       if (index < processedTopics.length - 2) {
-        nextTopics.push(processedTopics[index + 2].id);
+        nextTopics.push(processedTopics[index + 2].id)
       }
-      
+
       return {
         ...topic,
-        nextTopics
-      };
-    });
-    
+        nextTopics,
+      }
+    })
+
     // Update the roadmap with the processed data
     await updateDoc(roadmapRef, {
       title: courseInfo.courseTitle || roadmapData.title,
-      description: courseInfo.courseDescription || 'A learning roadmap based on your syllabus.',
-      course: courseInfo.courseLevel || 'General',
-      status: 'completed',
+      description: courseInfo.courseDescription || "A learning roadmap based on your syllabus.",
+      course: courseInfo.courseLevel || "General",
+      status: "completed",
       topics: enhancedTopics,
-      updatedAt: serverTimestamp()
-    });
-    
-    return NextResponse.json({ 
+      updatedAt: serverTimestamp(),
+    })
+
+    return NextResponse.json({
       success: true,
-      message: 'Syllabus processed successfully',
-      roadmapId
-    });
-    
+      message: "Syllabus processed successfully",
+      roadmapId,
+    })
   } catch (error) {
-    console.error('Error processing syllabus:', error);
-    return NextResponse.json({ 
-      error: 'Failed to process syllabus', 
-      details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    console.error("Error processing syllabus:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to process syllabus",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
-} 
+}
