@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
 import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebaseConfig"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import type React from "react"
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle } from "lucide-react"
 
@@ -18,6 +18,8 @@ export default function SignIn() {
   const [formValid, setFormValid] = useState(false)
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectPath = searchParams.get('redirect') || '/dashboard'
   const googleProvider = new GoogleAuthProvider()
 
   // Validate form
@@ -52,7 +54,7 @@ export default function SignIn() {
 
     // Delay redirect for animation
     setTimeout(() => {
-      router.push("/dashboard")
+      router.push(redirectPath)
     }, 1500)
   }
 
