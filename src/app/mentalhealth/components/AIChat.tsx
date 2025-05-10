@@ -17,6 +17,7 @@ export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasInitialGreeting, setHasInitialGreeting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function AIChat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/mental-health-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [...messages, userMessage] }),
@@ -39,15 +40,27 @@ export default function AIChat() {
       const data = await response.json();
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.content },
+        { role: "assistant", content: data.response },
       ]);
+
+      // Add initial greeting if this is the first interaction
+      if (!hasInitialGreeting) {
+        setHasInitialGreeting(true);
+        setMessages((prev) => [
+          {
+            role: "assistant",
+            content: "Hello! I'm here to provide mental health support and guidance. How are you feeling today?",
+          },
+          ...prev,
+        ]);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
+          content: "I apologize, but I'm having trouble responding right now. Please try again in a moment. If you're experiencing a mental health emergency, please contact emergency services or a mental health professional immediately.",
         },
       ]);
     } finally {
@@ -81,7 +94,7 @@ export default function AIChat() {
                   </AvatarFallback>
                 </Avatar>
                 <div
-                  className={`rounded-lg p-4 ${
+                  className={`rounded-lg p-4 max-w-[80%] ${
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -106,13 +119,18 @@ export default function AIChat() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Share your thoughts and feelings..."
             disabled={isLoading}
+            className="flex-1"
           />
           <Button type="submit" disabled={isLoading}>
             <Send className="h-4 w-4" />
           </Button>
         </form>
+        <div className="mt-4 text-sm text-muted-foreground text-center">
+          <p>This AI assistant is designed to provide support and guidance, but it's not a replacement for professional help.</p>
+          <p>If you're experiencing a mental health emergency, please contact emergency services or a mental health professional immediately.</p>
+        </div>
       </Card>
     </div>
   );

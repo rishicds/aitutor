@@ -9,6 +9,7 @@ import 'katex/dist/katex.min.css'; // Import KaTeX CSS
 import ResponsiveNavigation from "@/components/shared/Header"
 import Header from "@/components/shared/Header"
 import Footer from "@/components/shared/Footer"
+import { Toaster } from "sonner"
 
 // Import the wallet button component
 const inter = Inter({ subsets: ["latin"] })
@@ -46,6 +47,9 @@ export default function ClientLayout({
         {/* Responsive Navigation */}
    
         <ResponsiveNavigation />
+
+        {/* Toast notifications */}
+        <Toaster richColors position="top-center" />
 
         {/* Content Area with responsive margin */}
         <div className={`flex-1 flex flex-col min-h-screen ${!isMobile ? "ml-20" : "ml-0"}`}>

@@ -7,6 +7,7 @@ import { signOut } from "firebase/auth"
 import { type Dispatch, type JSX, type SetStateAction, useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { FiHome, FiBookOpen, FiZap, FiShoppingCart, FiUser, FiLogOut, FiLogIn, FiMenu, FiX, FiImage, FiCpu, FiSettings } from "react-icons/fi"
+import { LayoutDashboard, Map, BookOpen, ShoppingCart, Image, User, FlaskConical, PenTool, Heart, Settings } from "lucide-react"
 
 const ResponsiveNavigation = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -61,46 +62,49 @@ const DesktopSideNav = () => {
         </Link>
 
         {/* Navigation Links */}
-        <NavItem selected={selected === 0} id={0} setSelected={setSelected} link="/">
-          <FiHome />
-          <span className="sr-only">Home</span>
-        </NavItem>
         <NavItem selected={selected === 1} id={1} setSelected={setSelected} link="/dashboard">
-          <FiBookOpen />
+          <LayoutDashboard />
           <span className="sr-only">Dashboard</span>
         </NavItem>
-        <NavItem selected={selected === 2} id={2} setSelected={setSelected} link="/ai-tutors">
-          <FiCpu />
-          <span className="sr-only">AI Tutors</span>
+        <NavItem selected={selected === 2} id={2} setSelected={setSelected} link="/roadmap">
+          <Map />
+          <span className="sr-only">Roadmap</span>
         </NavItem>
         <NavItem selected={selected === 3} id={3} setSelected={setSelected} link="/pyq">
-          <FiZap />
+          <BookOpen />
           <span className="sr-only">PYQ</span>
         </NavItem>
-        <NavItem selected={selected === 4} id={4} setSelected={setSelected} link="/purchase">
-          <FiShoppingCart />
-          <span className="sr-only">Purchase</span>
+        <NavItem selected={selected === 10} id={10} setSelected={setSelected} link="/mentalhealth">
+          <Heart />
+          <span className="sr-only">Mental Health</span>
         </NavItem>
+        
         <NavItem selected={selected === 5} id={5} setSelected={setSelected} link="/image-tutor">
-          <FiImage />
+          <Image />
           <span className="sr-only">Image Tutor</span>
         </NavItem>
         <NavItem selected={selected === 6} id={6} setSelected={setSelected} link="/profile">
-          <FiUser />
+          <User />
           <span className="sr-only">User</span>
         </NavItem>
         <NavItem selected={selected === 7} id={7} setSelected={setSelected} link="/lab">
-          <FiZap />
+          <FlaskConical />
           <span className="sr-only">Laboratory</span>
         </NavItem>
-        <NavItem selected={selected === 8} id={8} setSelected={setSelected} link="/admin">
-          <FiSettings />
-          <span className="sr-only">Admin</span>
-        </NavItem>
+        
         <NavItem selected={selected === 9} id={9} setSelected={setSelected} link="/practice">
-          <FiBookOpen />
+          <PenTool />
           <span className="sr-only">Practice</span>
         </NavItem>
+        <NavItem selected={selected === 8} id={8} setSelected={setSelected} link="/admin">
+          <Settings />
+          <span className="sr-only">Admin</span>
+        </NavItem>
+        <NavItem selected={selected === 4} id={4} setSelected={setSelected} link="/purchase">
+          <ShoppingCart />
+          <span className="sr-only">Purchase</span>
+        </NavItem>
+        
 
 
 
