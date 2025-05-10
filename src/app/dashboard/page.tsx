@@ -7,66 +7,55 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SearchBar from "@/components/shared/SearchBar";
 import TokenDisplay from "@/components/TokenDisplay";
-import SubjectCard from "@/components/SubjectCard";
 import { auth, db } from "@/lib/firebaseConfig";
-import { Coins, Book, Filter, Plus, X, Loader2 } from "lucide-react";
+import { Coins, Book, Filter, Plus, X, Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import TutorCard from "@/components/TutorCard";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import Image from "next/image";
 
-const subjects = [
-  // JEE subjects
-  { id: "jee-math", name: "JEE Mathematics", icon: "🧮", category: "JEE" },
-  { id: "jee-physics", name: "JEE Physics", icon: "⚛️", category: "JEE" },
-  { id: "jee-chemistry", name: "JEE Chemistry", icon: "🧪", category: "JEE" },
+interface Subject {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  tags: string[];
+  category: string;
+}
 
-  // NEET subjects
-  { id: "neet-biology", name: "NEET Biology", icon: "🧬", category: "NEET" },
-  { id: "neet-physics", name: "NEET Physics", icon: "⚛️", category: "NEET" },
+const subjects: Subject[] = [
   {
-    id: "neet-chemistry",
-    name: "NEET Chemistry",
-    icon: "🧪",
-    category: "NEET",
-  },
-
-  // BTech CSE subjects
-  {
-    id: "cse-programming",
-    name: "Programming",
-    icon: "💻",
-    category: "BTech CSE",
+    id: "physics",
+    name: "Physics Tutor",
+    description: "Master physics concepts with interactive learning",
+    image: "/subjects/physics.jpg",
+    tags: ["Beginner Friendly", "JEE", "NEET"],
+    category: "Science"
   },
   {
-    id: "cse-data-structures",
-    name: "Data Structures",
-    icon: "🌳",
-    category: "BTech CSE",
+    id: "chemistry",
+    name: "Chemistry Tutor",
+    description: "Learn chemistry through practical examples",
+    image: "/subjects/chemistry.jpg",
+    tags: ["Beginner Friendly", "JEE", "NEET"],
+    category: "Science"
   },
   {
-    id: "cse-algorithms",
-    name: "Algorithms",
-    icon: "🧠",
-    category: "BTech CSE",
-  },
-  { id: "cse-databases", name: "Databases", icon: "🗄️", category: "BTech CSE" },
-  {
-    id: "cse-networking",
-    name: "Computer Networks",
-    icon: "🌐",
-    category: "BTech CSE",
+    id: "mathematics",
+    name: "Mathematics Tutor",
+    description: "Build strong mathematical foundations",
+    image: "/subjects/math.jpg",
+    tags: ["Advanced", "JEE", "KVPY"],
+    category: "Science"
   },
   {
-    id: "cse-os",
-    name: "Operating Systems",
-    icon: "💽",
-    category: "BTech CSE",
-  },
-
-  // Additional subjects
-  { id: "english", name: "English", icon: "📚", category: "General" },
-  { id: "history", name: "History", icon: "🏛️", category: "General" },
-  { id: "geography", name: "Geography", icon: "🌍", category: "General" },
+    id: "biology",
+    name: "Biology Tutor",
+    description: "Explore life sciences in detail",
+    image: "/subjects/biology.jpg",
+    tags: ["Beginner Friendly", "NEET"],
+    category: "Science"
+  }
 ];
 
 // Available subjects for custom tutor
@@ -485,5 +474,49 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function SubjectCard({ subject, index }: { subject: Subject; index: number }) {
+  const router = useRouter();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      whileHover={{ scale: 1.02 }}
+      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+    >
+      <div className="relative h-48">
+        <Image
+          src={subject.image}
+          alt={subject.name}
+          fill
+          className="object-cover"
+        />
+      </div>
+      <div className="p-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">{subject.name}</h3>
+        <p className="text-gray-600 mb-4">{subject.description}</p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {subject.tags.map((tag) => (
+            <span
+              key={tag}
+              className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        <button
+          onClick={() => router.push(`/ai-tutor?subject=${subject.id}`)}
+          className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+        >
+          <span>Start Learning</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </motion.div>
   );
 }

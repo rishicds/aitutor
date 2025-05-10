@@ -8,36 +8,30 @@ interface SuggestionChipsProps {
 }
 
 export default function SuggestionChips({ onSelect }: SuggestionChipsProps) {
-  const [suggestions, setSuggestions] = useState<string[]>([])
-
-  // Update suggestions based on context
-  useEffect(() => {
-    // In a real app, these would be dynamically generated based on conversation context
-    setSuggestions([
-      "Show me a diagram",
-      "Explain with an example",
-      "Give me practice questions",
-      "Simplify this concept",
-      "How is this applied in real life?",
-    ])
-  }, [])
+  const suggestions = [
+    "Can you explain this concept in more detail?",
+    "Can you give me some examples?",
+    "Can you help me practice this?",
+    "Let's try a mock test on this topic",
+    "Show me some previous year questions",
+    "Can we do a lab experiment for this?",
+  ]
 
   return (
     <div className="flex flex-wrap gap-2">
       {suggestions.map((suggestion, index) => (
-        <motion.div
+        <motion.button
           key={suggestion}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onSelect(suggestion)}
+          className="bg-lavender-100 text-lavender-600 px-4 py-2 rounded-full text-sm hover:bg-lavender-200 transition-colors"
         >
-          <button
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs py-1 px-3 rounded-full transition-colors"
-            onClick={() => onSelect(suggestion)}
-          >
-            {suggestion}
-          </button>
-        </motion.div>
+          {suggestion}
+        </motion.button>
       ))}
     </div>
   )
