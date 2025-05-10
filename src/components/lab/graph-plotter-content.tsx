@@ -12,6 +12,14 @@ import { Trash, Plus, RefreshCw, Download } from "lucide-react"
 
 // Function to safely evaluate mathematical expressions
 function evaluateExpression(expression: string, x: number): number | null {
+  // Add debug logging
+  console.log(`Evaluating expression: ${expression} with x = ${x}`);
+  
+  // Empty or invalid expression check
+  if (!expression || expression.trim() === "") {
+    return 0; // Return 0 for empty expressions
+  }
+
   // Replace common mathematical functions with Math equivalents
   const preparedExpression = expression
     .replace(/sin\(/g, "Math.sin(")
@@ -26,11 +34,25 @@ function evaluateExpression(expression: string, x: number): number | null {
     .replace(/e/g, "Math.E")
 
   try {
-    // eslint-disable-next-line no-new-func
-    return Function("x", `"use strict"; return ${preparedExpression}`)(x)
+    // Set a timeout to prevent long-running evaluations
+    const evalResult = Function("x", `"use strict"; 
+      try {
+        return ${preparedExpression};
+      } catch (err) {
+        console.error('Expression evaluation error:', err);
+        return null;
+      }`)(x);
+
+    // Check for extreme values that might cause rendering issues
+    if (evalResult !== null && (evalResult > 1e10 || evalResult < -1e10 || !isFinite(evalResult))) {
+      console.warn(`Expression produced extreme value: ${evalResult} at x=${x}`);
+      return null;
+    }
+    
+    return evalResult;
   } catch (error) {
-    console.error("Error evaluating expression:", error)
-    return null
+    console.error("Error evaluating expression:", error);
+    return null;
   }
 }
 
@@ -60,6 +82,10 @@ export default function GraphPlotterContent() {
     { id: "1", expression: "x^2", color: COLORS[0], visible: true },
     { id: "2", expression: "sin(x)", color: COLORS[1], visible: true },
   ])
+
+  // Add error state to track rendering problems
+  const [renderError, setRenderError] = useState<string | null>(null);
+  const [isRendering, setIsRendering] = useState(false);
 
   // Graph settings
   const [xMin, setXMin] = useState(-10)
@@ -92,17 +118,23 @@ export default function GraphPlotterContent() {
 
   // Function to update a function expression
   const updateFunctionExpression = (id: string, expression: string) => {
-    setFunctions(functions.map((f) => (f.id === id ? { ...f, expression } : f)))
+    setFunctions((prevFunctions) => 
+      prevFunctions.map((f) => (f.id === id ? { ...f, expression } : f))
+    )
   }
 
   // Function to toggle function visibility
   const toggleFunctionVisibility = (id: string) => {
-    setFunctions(functions.map((f) => (f.id === id ? { ...f, visible: !f.visible } : f)))
+    setFunctions((prevFunctions) => 
+      prevFunctions.map((f) => (f.id === id ? { ...f, visible: !f.visible } : f))
+    )
   }
 
   // Function to change function color
   const updateFunctionColor = (id: string, color: string) => {
-    setFunctions(functions.map((f) => (f.id === id ? { ...f, color } : f)))
+    setFunctions((prevFunctions) => 
+      prevFunctions.map((f) => (f.id === id ? { ...f, color } : f))
+    )
   }
 
   // Function to reset view
@@ -125,195 +157,281 @@ export default function GraphPlotterContent() {
     link.click()
   }
 
+  // Handler for numeric input changes with validation
+  const handleNumericInputChange = (setter: React.Dispatch<React.SetStateAction<number>>, value: string) => {
+    const numericValue = parseFloat(value)
+    if (!isNaN(numericValue)) {
+      setter(numericValue)
+    }
+  }
+
   // Draw the graph
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    // Set a flag to track rendering operation
+    setIsRendering(true);
+    setRenderError(null);
+    
+    // Create a debounced rendering function to prevent UI blocking
+    const renderTimeout = setTimeout(() => {
+      try {
+        const canvas = canvasRef.current
+        if (!canvas) {
+          setIsRendering(false);
+          return;
+        }
 
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+        console.log("Starting graph rendering");
+        const startTime = performance.now();
 
-    // Set canvas dimensions
-    const dpr = window.devicePixelRatio || 1
-    const rect = canvas.getBoundingClientRect()
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          setIsRendering(false);
+          return;
+        }
 
-    canvas.width = rect.width * dpr
-    canvas.height = rect.height * dpr
+        // Validate graph bounds to prevent issues
+        if (xMin >= xMax || yMin >= yMax) {
+          setRenderError("Invalid graph bounds: min must be less than max");
+          setIsRendering(false);
+          return;
+        }
 
-    ctx.scale(dpr, dpr)
-    canvas.style.width = `${rect.width}px`
-    canvas.style.height = `${rect.height}px`
+        // Set canvas dimensions
+        const dpr = window.devicePixelRatio || 1
+        const rect = canvas.getBoundingClientRect()
 
-    // Clear canvas
-    ctx.clearRect(0, 0, rect.width, rect.height)
-    ctx.fillStyle = "#ffffff"
-    ctx.fillRect(0, 0, rect.width, rect.height)
+        canvas.width = rect.width * dpr
+        canvas.height = rect.height * dpr
 
-    // Calculate scale factors
-    const xScale = rect.width / (xMax - xMin)
-    const yScale = rect.height / (yMax - yMin)
+        ctx.scale(dpr, dpr)
+        canvas.style.width = `${rect.width}px`
+        canvas.style.height = `${rect.height}px`
 
-    // Function to convert x coordinate to canvas x
-    const toCanvasX = (x: number) => (x - xMin) * xScale
+        // Clear canvas
+        ctx.clearRect(0, 0, rect.width, rect.height)
+        ctx.fillStyle = "#ffffff"
+        ctx.fillRect(0, 0, rect.width, rect.height)
 
-    // Function to convert y coordinate to canvas y
-    const toCanvasY = (y: number) => rect.height - (y - yMin) * yScale
+        // Calculate scale factors
+        const xScale = rect.width / (xMax - xMin)
+        const yScale = rect.height / (yMax - yMin)
 
-    // Draw grid if enabled
-    if (showGrid) {
-      ctx.strokeStyle = "#f0f0f0"
-      ctx.lineWidth = 1
+        // Function to convert x coordinate to canvas x
+        const toCanvasX = (x: number) => (x - xMin) * xScale
 
-      // Draw vertical grid lines
-      for (let x = Math.ceil(xMin / gridSize) * gridSize; x <= xMax; x += gridSize) {
-        ctx.beginPath()
-        ctx.moveTo(toCanvasX(x), 0)
-        ctx.lineTo(toCanvasX(x), rect.height)
-        ctx.stroke()
-      }
+        // Function to convert y coordinate to canvas y
+        const toCanvasY = (y: number) => rect.height - (y - yMin) * yScale
 
-      // Draw horizontal grid lines
-      for (let y = Math.ceil(yMin / gridSize) * gridSize; y <= yMax; y += gridSize) {
-        ctx.beginPath()
-        ctx.moveTo(0, toCanvasY(y))
-        ctx.lineTo(rect.width, toCanvasY(y))
-        ctx.stroke()
-      }
-    }
+        // Draw grid if enabled
+        if (showGrid) {
+          ctx.strokeStyle = "#f0f0f0"
+          ctx.lineWidth = 1
 
-    // Draw axes if enabled
-    if (showAxes) {
-      ctx.strokeStyle = "#666666"
-      ctx.lineWidth = 2
+          // Draw vertical grid lines
+          for (let x = Math.ceil(xMin / gridSize) * gridSize; x <= xMax; x += gridSize) {
+            ctx.beginPath()
+            ctx.moveTo(toCanvasX(x), 0)
+            ctx.lineTo(toCanvasX(x), rect.height)
+            ctx.stroke()
+          }
 
-      // Draw x-axis if it's in view
-      if (yMin <= 0 && yMax >= 0) {
-        ctx.beginPath()
-        ctx.moveTo(0, toCanvasY(0))
-        ctx.lineTo(rect.width, toCanvasY(0))
-        ctx.stroke()
+          // Draw horizontal grid lines
+          for (let y = Math.ceil(yMin / gridSize) * gridSize; y <= yMax; y += gridSize) {
+            ctx.beginPath()
+            ctx.moveTo(0, toCanvasY(y))
+            ctx.lineTo(rect.width, toCanvasY(y))
+            ctx.stroke()
+          }
+        }
 
-        // Draw x-axis ticks and labels
-        ctx.textAlign = "center"
-        ctx.textBaseline = "top"
-        ctx.font = "12px Arial"
-        ctx.fillStyle = "#666666"
+        // Draw axes if enabled
+        if (showAxes) {
+          ctx.strokeStyle = "#666666"
+          ctx.lineWidth = 2
 
-        for (let x = Math.ceil(xMin / gridSize) * gridSize; x <= xMax; x += gridSize) {
-          if (x === 0) continue // Skip zero
+          // Draw x-axis if it's in view
+          if (yMin <= 0 && yMax >= 0) {
+            ctx.beginPath()
+            ctx.moveTo(0, toCanvasY(0))
+            ctx.lineTo(rect.width, toCanvasY(0))
+            ctx.stroke()
 
-          const canvasX = toCanvasX(x)
+            // Draw x-axis ticks and labels
+            ctx.textAlign = "center"
+            ctx.textBaseline = "top"
+            ctx.font = "12px Arial"
+            ctx.fillStyle = "#666666"
+
+            for (let x = Math.ceil(xMin / gridSize) * gridSize; x <= xMax; x += gridSize) {
+              if (x === 0) continue // Skip zero
+
+              const canvasX = toCanvasX(x)
+              ctx.beginPath()
+              ctx.moveTo(canvasX, toCanvasY(0) - 5)
+              ctx.lineTo(canvasX, toCanvasY(0) + 5)
+              ctx.stroke()
+
+              ctx.fillText(x.toString(), canvasX, toCanvasY(0) + 8)
+            }
+          }
+
+          // Draw y-axis if it's in view
+          if (xMin <= 0 && xMax >= 0) {
+            ctx.beginPath()
+            ctx.moveTo(toCanvasX(0), 0)
+            ctx.lineTo(toCanvasX(0), rect.height)
+            ctx.stroke()
+
+            // Draw y-axis ticks and labels
+            ctx.textAlign = "right"
+            ctx.textBaseline = "middle"
+
+            for (let y = Math.ceil(yMin / gridSize) * gridSize; y <= yMax; y += gridSize) {
+              if (y === 0) continue // Skip zero
+
+              const canvasY = toCanvasY(y)
+              ctx.beginPath()
+              ctx.moveTo(toCanvasX(0) - 5, canvasY)
+              ctx.lineTo(toCanvasX(0) + 5, canvasY)
+              ctx.stroke()
+
+              ctx.fillText(y.toString(), toCanvasX(0) - 8, canvasY)
+            }
+          }
+
+          // Draw origin label
+          if (xMin <= 0 && xMax >= 0 && yMin <= 0 && yMax >= 0) {
+            ctx.textAlign = "right"
+            ctx.textBaseline = "top"
+            ctx.fillText("0", toCanvasX(0) - 8, toCanvasY(0) + 8)
+          }
+        }
+
+        // Calculate approximate number of points to plot based on canvas width
+        // Limit the number of points to prevent freezing
+        const maxPoints = Math.min(rect.width, 1000);
+        const step = (xMax - xMin) / maxPoints;
+
+        // Draw each function with performance monitoring
+        functions.forEach((func) => {
+          if (!func.visible) return
+          
+          console.log(`Rendering function: ${func.expression}`);
+          const funcStartTime = performance.now();
+
+          // Skip empty expressions
+          if (!func.expression || func.expression.trim() === "") {
+            return;
+          }
+
+          ctx.strokeStyle = func.color
+          ctx.lineWidth = 2
           ctx.beginPath()
-          ctx.moveTo(canvasX, toCanvasY(0) - 5)
-          ctx.lineTo(canvasX, toCanvasY(0) + 5)
-          ctx.stroke()
 
-          ctx.fillText(x.toString(), canvasX, toCanvasY(0) + 8)
-        }
+          let isFirstPoint = true
+          let pointsProcessed = 0;
+          let lastY = null;
+          
+          for (let pixelX = 0; pixelX <= rect.width; pixelX += 1) {
+            // Safety check for excessive processing
+            pointsProcessed++;
+            if (pointsProcessed > maxPoints) {
+              console.warn("Reached max points limit for function rendering");
+              break;
+            }
+            
+            const x = xMin + (pixelX / rect.width) * (xMax - xMin);
+            const y = evaluateExpression(func.expression, x);
+
+            if (y === null || !isFinite(y)) {
+              isFirstPoint = true;
+              continue;
+            }
+
+            // Skip extreme jumps in y-values (likely discontinuities)
+            if (lastY !== null && Math.abs(y - lastY) > (yMax - yMin) / 2) {
+              isFirstPoint = true;
+            }
+            lastY = y;
+
+            if (y < yMin || y > yMax) {
+              isFirstPoint = true;
+              continue;
+            }
+
+            if (isFirstPoint) {
+              ctx.moveTo(pixelX, toCanvasY(y));
+              isFirstPoint = false;
+            } else {
+              ctx.lineTo(pixelX, toCanvasY(y));
+            }
+          }
+
+          ctx.stroke();
+          console.log(`Function rendered in ${performance.now() - funcStartTime}ms`);
+        })
+
+        const endTime = performance.now();
+        console.log(`Graph rendering completed in ${endTime - startTime}ms`);
+        setIsRendering(false);
+      } catch (error) {
+        console.error("Error rendering graph:", error);
+        setRenderError(`Error rendering graph: ${error instanceof Error ? error.message : String(error)}`);
+        setIsRendering(false);
       }
+    }, 250); // 250ms debounce delay
 
-      // Draw y-axis if it's in view
-      if (xMin <= 0 && xMax >= 0) {
-        ctx.beginPath()
-        ctx.moveTo(toCanvasX(0), 0)
-        ctx.lineTo(toCanvasX(0), rect.height)
-        ctx.stroke()
-
-        // Draw y-axis ticks and labels
-        ctx.textAlign = "right"
-        ctx.textBaseline = "middle"
-
-        for (let y = Math.ceil(yMin / gridSize) * gridSize; y <= yMax; y += gridSize) {
-          if (y === 0) continue // Skip zero
-
-          const canvasY = toCanvasY(y)
-          ctx.beginPath()
-          ctx.moveTo(toCanvasX(0) - 5, canvasY)
-          ctx.lineTo(toCanvasX(0) + 5, canvasY)
-          ctx.stroke()
-
-          ctx.fillText(y.toString(), toCanvasX(0) - 8, canvasY)
-        }
-      }
-
-      // Draw origin label
-      if (xMin <= 0 && xMax >= 0 && yMin <= 0 && yMax >= 0) {
-        ctx.textAlign = "right"
-        ctx.textBaseline = "top"
-        ctx.fillText("0", toCanvasX(0) - 8, toCanvasY(0) + 8)
-      }
-    }
-
-    // Draw each function
-    functions.forEach((func) => {
-      if (!func.visible) return
-
-      ctx.strokeStyle = func.color
-      ctx.lineWidth = 2
-      ctx.beginPath()
-
-      let isFirstPoint = true
-      const step = (xMax - xMin) / rect.width
-
-      for (let pixelX = 0; pixelX <= rect.width; pixelX++) {
-        const x = xMin + pixelX * step
-        const y = evaluateExpression(func.expression, x)
-
-        if (y === null || !isFinite(y)) {
-          isFirstPoint = true
-          continue
-        }
-
-        if (y < yMin || y > yMax) {
-          isFirstPoint = true
-          continue
-        }
-
-        if (isFirstPoint) {
-          ctx.moveTo(pixelX, toCanvasY(y))
-          isFirstPoint = false
-        } else {
-          ctx.lineTo(pixelX, toCanvasY(y))
-        }
-      }
-
-      ctx.stroke()
-    })
+    // Cleanup function
+    return () => {
+      clearTimeout(renderTimeout);
+    };
   }, [functions, xMin, xMax, yMin, yMax, gridSize, showGrid, showAxes])
 
   return (
     <div className="flex flex-col md:flex-row gap-6 p-4 h-full">
       <div className="flex-1 flex flex-col">
         <Tabs defaultValue="functions" className="w-full">
-          <TabsList className="grid grid-cols-2 mb-4 bg-lavender-100">
-            <TabsTrigger
-              value="functions"
-              className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white"
-            >
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="functions">
               Functions
             </TabsTrigger>
-            <TabsTrigger
-              value="settings"
-              className="data-[state=active]:bg-lavender-500 data-[state=active]:text-white"
-            >
+            <TabsTrigger value="settings">
               Graph Settings
             </TabsTrigger>
           </TabsList>
 
+          {/* Show error message if rendering fails */}
+          {renderError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <p>Rendering error: {renderError}</p>
+              <p className="text-sm">Try simplifying your functions or adjusting the graph bounds.</p>
+            </div>
+          )}
+
+          {/* Show loading indicator during rendering */}
+          {isRendering && (
+            <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
+              <p>Rendering graph...</p>
+            </div>
+          )}
+
           <TabsContent value="functions" className="space-y-4 mt-0">
-            <Card className="border-lavender-200">
+            <Card>
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   {functions.map((func) => (
                     <div key={func.id} className="flex items-center space-x-2">
                       <div
                         className="w-4 h-4 rounded-full cursor-pointer"
-                        style={{ backgroundColor: func.color }}
+                        style={{ backgroundColor: func.color, opacity: func.visible ? 1 : 0.3 }}
                         onClick={() => toggleFunctionVisibility(func.id)}
                         title={func.visible ? "Hide function" : "Show function"}
                       />
 
-                      <Select value={func.color} onValueChange={(value) => updateFunctionColor(func.id, value)}>
+                      <Select 
+                        value={func.color} 
+                        onValueChange={(value) => updateFunctionColor(func.id, value)}
+                      >
                         <SelectTrigger className="w-20">
                           <SelectValue />
                         </SelectTrigger>
@@ -367,7 +485,7 @@ export default function GraphPlotterContent() {
                     </div>
                   ))}
 
-                  <Button onClick={addFunction} className="w-full bg-lavender-500 hover:bg-lavender-600">
+                  <Button onClick={addFunction} className="w-full">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Function
                   </Button>
@@ -375,9 +493,9 @@ export default function GraphPlotterContent() {
               </CardContent>
             </Card>
 
-            <Card className="border-lavender-200">
+            <Card>
               <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2 text-lavender-800">Function Examples</h3>
+                <h3 className="font-semibold mb-2">Function Examples</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="p-2 bg-gray-50 rounded-md">
                     <code>x^2</code> - Parabola
@@ -403,30 +521,50 @@ export default function GraphPlotterContent() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4 mt-0">
-            <Card className="border-lavender-200">
+            <Card>
               <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4 text-lavender-800">Graph Settings</h3>
+                <h3 className="font-semibold mb-4">Graph Settings</h3>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="xMin">X Minimum</Label>
-                      <Input id="xMin" type="number" value={xMin} onChange={(e) => setXMin(Number(e.target.value))} />
+                      <Input 
+                        id="xMin" 
+                        type="number" 
+                        value={xMin} 
+                        onChange={(e) => handleNumericInputChange(setXMin, e.target.value)} 
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="xMax">X Maximum</Label>
-                      <Input id="xMax" type="number" value={xMax} onChange={(e) => setXMax(Number(e.target.value))} />
+                      <Input 
+                        id="xMax" 
+                        type="number" 
+                        value={xMax} 
+                        onChange={(e) => handleNumericInputChange(setXMax, e.target.value)} 
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="yMin">Y Minimum</Label>
-                      <Input id="yMin" type="number" value={yMin} onChange={(e) => setYMin(Number(e.target.value))} />
+                      <Input 
+                        id="yMin" 
+                        type="number" 
+                        value={yMin} 
+                        onChange={(e) => handleNumericInputChange(setYMin, e.target.value)} 
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="yMax">Y Maximum</Label>
-                      <Input id="yMax" type="number" value={yMax} onChange={(e) => setYMax(Number(e.target.value))} />
+                      <Input 
+                        id="yMax" 
+                        type="number" 
+                        value={yMax} 
+                        onChange={(e) => handleNumericInputChange(setYMax, e.target.value)} 
+                      />
                     </div>
                   </div>
 
@@ -452,7 +590,7 @@ export default function GraphPlotterContent() {
                       id="showGrid"
                       checked={showGrid}
                       onChange={(e) => setShowGrid(e.target.checked)}
-                      className="rounded border-gray-300 text-lavender-600 focus:ring-lavender-500"
+                      className="rounded border-gray-300"
                     />
                     <Label htmlFor="showGrid">Show Grid</Label>
                   </div>
@@ -463,7 +601,7 @@ export default function GraphPlotterContent() {
                       id="showAxes"
                       checked={showAxes}
                       onChange={(e) => setShowAxes(e.target.checked)}
-                      className="rounded border-gray-300 text-lavender-600 focus:ring-lavender-500"
+                      className="rounded border-gray-300"
                     />
                     <Label htmlFor="showAxes">Show Axes</Label>
                   </div>

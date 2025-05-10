@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!)
@@ -33,9 +32,25 @@ type PYQParams = {
   examStyle?: string // Optional param to mimic specific exam boards (CBSE, ICSE, JEE, NEET, etc.)
 }
 
+type MockTestSection = {
+  name: string
+  questionType: "multiple-choice" | "short-answer" | "long-form" | "numerical" | "mixed"
+  count: number
+  marksPerQuestion: number
+  isCompulsory: boolean
+}
+
+type MockTestParams = {
+  id: string
+  subject: string
+  duration: number
+  totalMarks: number
+  sections: MockTestSection[]
+}
+
 export async function getGeminiResponse(prompt: string, tutorParams: TutorParams) {
   // Get the assigned tutor name for the subject, or default to a general tutor
-  const tutorName = tutorMapping[tutorParams.subject] || "Chandrima"
+  const tutorName = tutorMapping[tutorParams.subject.toLowerCase()] || "Chandrima"
 
   // Configure Gemini model
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
@@ -98,59 +113,50 @@ export async function getGeminiResponse(prompt: string, tutorParams: TutorParams
   return text
 }
 
-
-
-
-
-
 const formatAIResponse = (response: string) => {
   // Remove any introductory text before the first question
-  let cleanedResponse = response;
-  
+  let cleanedResponse = response
+
   // Check for introductory text pattern (prose before first question)
-  const introMatch = response.match(/^(.*?)(\*\*(?:Question|Q)\s*\d+|#{1,3}\s*(?:Question|Q)\s*\d+|\d+\.\s*(?:Question|Q)|(?:Question|Q)\s*\d+:)/i);
+  const introMatch = response.match(
+    /^(.*?)(\*\*(?:Question|Q)\s*\d+|#{1,3}\s*(?:Question|Q)\s*\d+|\d+\.\s*(?:Question|Q)|(?:Question|Q)\s*\d+:)/i,
+  )
   if (introMatch && introMatch[1] && introMatch[1].trim().length > 0) {
     // Remove intro if it's not just whitespace and doesn't look like a question itself
     if (!introMatch[1].match(/\*\*|\d+\./)) {
-      cleanedResponse = response.substring(introMatch[0].indexOf(introMatch[2]));
+      cleanedResponse = response.substring(introMatch[0].indexOf(introMatch[2]))
     }
   }
-  
+
   // Make sure solutions are in a separate section with proper heading
-  if (!cleanedResponse.match(/---+.*?solutions|solutions\s*&\s*explanations/i)) {
+  if (!cleanedResponse.match(/---+.*?solutions|solutions\s*&?\s*explanations/i)) {
     // Check if there are identifiable solutions but no solutions section header
-    const firstSolutionMatch = cleanedResponse.match(/\*\*Solution\s*\d+\*\*|#{1,3}\s*Solution\s*\d+/i);
+    const firstSolutionMatch = cleanedResponse.match(/\*\*Solution\s*\d+\*\*|#{1,3}\s*Solution\s*\d+/i)
     if (firstSolutionMatch) {
       // Find the position of the first solution
-      const pos = cleanedResponse.indexOf(firstSolutionMatch[0]);
-      
+      const pos = cleanedResponse.indexOf(firstSolutionMatch[0])
+
       // Insert a proper solutions divider
-      cleanedResponse = 
-        cleanedResponse.substring(0, pos) + 
-        "\n\n---\n\n**Solutions & Explanations**\n\n" + 
-        cleanedResponse.substring(pos);
+      cleanedResponse =
+        cleanedResponse.substring(0, pos) +
+        "\n\n---\n\n**Solutions & Explanations**\n\n" +
+        cleanedResponse.substring(pos)
     }
   }
-  
-  // Ensure questions are properly formatted with bold markers
-  cleanedResponse = cleanedResponse.replace(
-    /^(Question\s*\d+:)(?!\*\*)/gim, 
-    "**$1**"
-  );
-  
-  // Ensure solutions are properly formatted with bold markers
-  cleanedResponse = cleanedResponse.replace(
-    /^(Solution\s*\d+:)(?!\*\*)/gim, 
-    "**$1**"
-  );
-  
-  return cleanedResponse;
-};
 
-// Update the generatePracticeQuestions function to specify a clear format
-export const generatePracticeQuestions = async (params: { subject: any; topic: any; difficulty: any; count: any; format: any; withSolutions: any; examStyle: any }) => {
-  const { subject, topic, difficulty, count, format, withSolutions, examStyle } = params;
-  
+  // Ensure questions are properly formatted with bold markers
+  cleanedResponse = cleanedResponse.replace(/^(Question\s*\d+:)(?!\*\*)/gim, "**$1**")
+
+  // Ensure solutions are properly formatted with bold markers
+  cleanedResponse = cleanedResponse.replace(/^(Solution\s*\d+:)(?!\*\*)/gim, "**$1**")
+
+  return cleanedResponse
+}
+
+// Function to generate practice questions
+export const generatePracticeQuestions = async (params: PYQParams) => {
+  const { subject, topic, difficulty, count, format, withSolutions, examStyle } = params
+
   // Construct a detailed prompt with format instructions
   const prompt = `
 Generate ${count} ${difficulty} level ${subject} questions about ${topic} following the ${examStyle}.
@@ -189,7 +195,7 @@ Important instructions:
 4. Make solutions clear, comprehensive and properly formatted
 5. For multiple choice questions, clearly indicate the correct answer
 6. For any diagrams or mathematical formulas, use proper markdown formatting
-`;
+`
 
   // Call to Gemini API with the improved prompt
   const response = await getGeminiResponse(prompt, {
@@ -197,8 +203,78 @@ Important instructions:
     topic: topic,
     personality: "neutral",
     level: difficulty === "easy" ? "beginner" : difficulty === "medium" ? "intermediate" : "expert",
-    teachingStyle: "example-based"
-  });
-  
-  return response;
-};
+    teachingStyle: "example-based",
+  })
+
+  return response
+}
+
+// Function to generate a complete mock test
+export const generateMockTest = async (params: MockTestParams) => {
+  const { id, subject, duration, totalMarks, sections } = params
+
+  // Calculate total questions and marks to ensure they match the specified total
+  const totalQuestions = sections.reduce((sum, section) => sum + section.count, 0)
+  const calculatedTotalMarks = sections.reduce((sum, section) => sum + section.count * section.marksPerQuestion, 0)
+
+  // Prepare sections information for the prompt
+  const sectionsInfo = sections
+    .map((section) => {
+      const sectionMarks = section.count * section.marksPerQuestion
+      const compulsoryText = section.isCompulsory
+        ? "All questions in this section are compulsory."
+        : "Attempt any questions from this section."
+
+      return `
+Section ${section.name} (${sectionMarks} marks):
+- Contains ${section.count} ${section.questionType} questions
+- Each question carries ${section.marksPerQuestion} mark(s)
+- ${compulsoryText}
+`
+    })
+    .join("\n")
+
+  // Construct a detailed prompt for generating the mock test
+  const prompt = `
+Generate a complete ${subject} mock test paper following the Indian education system format.
+
+Test Details:
+- Subject: ${subject}
+- Duration: ${duration} minutes
+- Total Marks: ${totalMarks}
+- Total Questions: ${totalQuestions}
+
+${sectionsInfo}
+
+Format Requirements:
+1. Create a professional-looking question paper with proper header including subject name, time allowed, and maximum marks
+2. Include clear instructions for each section
+3. Number all questions properly within each section
+4. For multiple-choice questions, provide 4 options (a, b, c, d)
+5. Include a mix of theoretical and application-based questions
+6. For numerical problems, include proper units and formulas where applicable
+7. Ensure the difficulty level is appropriate for high school/secondary education
+8. Include diagrams or figures where necessary (described in text)
+9. Provide a separate answer key/solutions section at the end with "SOLUTIONS" as a clear header
+
+The test should cover a comprehensive range of topics within the subject and follow standard examination patterns used in Indian schools.
+
+IMPORTANT: Format the paper with clear section headers (SECTION A, SECTION B, etc.) and make sure each section is visually distinct.
+`
+
+  // Call to Gemini API with the detailed prompt
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+  const result = await model.generateContent(prompt)
+  const response = await result.response
+  const mockTestContent = response.text()
+
+  // Return the content directly without saving to database
+  return {
+    id,
+    subject,
+    duration,
+    totalMarks,
+    content: mockTestContent,
+    createdAt: new Date().toISOString(),
+  }
+}

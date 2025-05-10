@@ -97,6 +97,11 @@ const DesktopSideNav = () => {
           <FiSettings />
           <span className="sr-only">Admin</span>
         </NavItem>
+        <NavItem selected={selected === 9} id={9} setSelected={setSelected} link="/practice">
+          <FiBookOpen />
+          <span className="sr-only">Practice</span>
+        </NavItem>
+
 
 
         {/* Auth Buttons (Sign In/Out) */}
@@ -149,9 +154,9 @@ const MobileNavigation = ({
             <FiCpu size={22} />
             <span className="text-xs mt-1">Tutors</span>
           </MobileNavItem>
-          <MobileNavItem selected={selected === 3} id={3} setSelected={setSelected} link="/pyq">
-            <FiZap size={22} />
-            <span className="text-xs mt-1">PYQ</span>
+          <MobileNavItem selected={selected === 3} id={3} setSelected={setSelected} link="/profile">
+            <FiUser size={22} />
+            <span className="text-xs mt-1">Profile</span>
           </MobileNavItem>
         </div>
       </div>
@@ -198,12 +203,22 @@ const MobileNavigation = ({
                 </Link>
               </motion.div>
 
-              {/* Purchase Card */}
+              {/* User Profile Card */}
               <motion.div
                 className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
+              >
+                <AuthButton isMobile={true} setMobileMenuOpen={setMobileMenuOpen} showProfilePic={true} />
+              </motion.div>
+
+              {/* Purchase Card */}
+              <motion.div
+                className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3 }}
               >
                 <Link href="/purchase" onClick={() => setMobileMenuOpen(false)}>
                   <motion.div
@@ -222,45 +237,71 @@ const MobileNavigation = ({
                 </Link>
               </motion.div>
 
-              {/* Auth Card */}
-              <motion.div
-                className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <AuthButton isMobile={true} setMobileMenuOpen={setMobileMenuOpen} />
-              </motion.div>
-
-              {/* Quick Links Card */}
+              {/* All Navigation Links Card */}
               <motion.div
                 className="bg-white w-full rounded-xl p-4 shadow-lg border border-lavender-100"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                <h3 className="text-slate-700 font-medium mb-3">Quick Links</h3>
+                <h3 className="text-slate-700 font-medium mb-3">Navigation</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <QuickLinkButton
+                  <MobileMenuLink
+                    icon={<FiHome />}
+                    label="Home"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/"
+                  />
+                  <MobileMenuLink
+                    icon={<FiBookOpen />}
+                    label="Dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/dashboard"
+                  />
+                  <MobileMenuLink
+                    icon={<FiCpu />}
+                    label="AI Tutors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/ai-tutors"
+                  />
+                  <MobileMenuLink
+                    icon={<FiZap />}
+                    label="PYQ"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/pyq"
+                  />
+                  <MobileMenuLink
+                    icon={<FiShoppingCart />}
+                    label="Purchase"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/purchase"
+                  />
+                  <MobileMenuLink
+                    icon={<FiImage />}
+                    label="Image Tutor"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/image-tutor"
+                  />
+                  <MobileMenuLink
                     icon={<FiUser />}
                     label="Profile"
                     onClick={() => setMobileMenuOpen(false)}
                     link="/profile"
                   />
-                  <QuickLinkButton
-                    icon={<FiShoppingCart />}
-                    label="Cart"
-                    onClick={() => setMobileMenuOpen(false)}
-                    link="/cart"
-                  />
-                  <QuickLinkButton
-                    icon={<FiBookOpen />}
-                    label="Courses"
-                    onClick={() => setMobileMenuOpen(false)}
-                    link="/courses"
-                  />
-                  <QuickLinkButton
+                  <MobileMenuLink
                     icon={<FiZap />}
+                    label="Laboratory"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/lab"
+                  />
+                  <MobileMenuLink
+                    icon={<FiSettings />}
+                    label="Admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    link="/admin"
+                  />
+                  <MobileMenuLink
+                    icon={<FiBookOpen />}
                     label="Practice"
                     onClick={() => setMobileMenuOpen(false)}
                     link="/practice"
@@ -368,8 +409,8 @@ const MobileNavItem = ({
   )
 }
 
-// Quick Link Button for Mobile Menu
-const QuickLinkButton = ({
+// Mobile Menu Link Component
+const MobileMenuLink = ({
   icon,
   label,
   onClick,
@@ -399,9 +440,11 @@ const QuickLinkButton = ({
 const AuthButton = ({
   isMobile = false,
   setMobileMenuOpen = () => {},
+  showProfilePic = false,
 }: {
   isMobile?: boolean
   setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>
+  showProfilePic?: boolean
 }) => {
   const [user] = useAuthState(auth)
 
@@ -419,9 +462,17 @@ const AuthButton = ({
       return (
         <div className="w-full">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-lavender-100 rounded-full flex items-center justify-center">
-              <FiUser size={24} className="text-lavender-500" />
-            </div>
+            {user.photoURL && showProfilePic ? (
+              <img 
+                src={user.photoURL} 
+                alt="Profile" 
+                className="w-12 h-12 rounded-full object-cover border-2 border-lavender-300"
+              />
+            ) : (
+              <div className="w-12 h-12 bg-lavender-100 rounded-full flex items-center justify-center">
+                <FiUser size={24} className="text-lavender-500" />
+              </div>
+            )}
             <div>
               <h3 className="font-medium text-slate-700">{user.displayName || "User"}</h3>
               <p className="text-sm text-slate-500 truncate max-w-full">{user.email || "Signed In"}</p>
