@@ -130,19 +130,7 @@ export default function LabExperimentsPage() {
       views: 789,
       featured: true,
     },
-    {
-      id: "dsa-visualization",
-      title: "Neuron Signal Transmission",
-      description:
-        "Simulate the transmission of signals in a neuron, including action potentials and synaptic transmission.",
-      category: "neuroscience",
-      difficulty: "Advanced",
-      tags: ["neurons", "signals", "action potentials"],
-      thumbnail: "/neuron.png",
-      modelPath: "/models/neuron.glb",
-      views: 432,
-      featured: false,
-    },
+    
   ])
 
   // State for filtering and viewing

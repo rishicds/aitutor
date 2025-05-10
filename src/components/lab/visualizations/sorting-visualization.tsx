@@ -22,6 +22,8 @@ export default function SortingVisualization({ currentStep = 0, speed = 1, isPla
   const [message, setMessage] = useState<string>("")
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+  
+
   // Initialize canvas and generate initial random array
   useEffect(() => {
     generateRandomArray()

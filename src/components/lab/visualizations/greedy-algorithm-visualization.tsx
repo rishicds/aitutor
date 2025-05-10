@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Play, Shuffle } from "lucide-react"
 
+
 interface Edge {
   from: number
   to: number
@@ -30,6 +31,8 @@ export default function GreedyAlgorithmVisualization({
   const [nodes, setNodes] = useState<{ x: number, y: number }[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   const [algorithmSteps, setAlgorithmSteps] = useState<Edge[][]>([])
+  
+
   
   // Initialize canvas and create random graph
   useEffect(() => {

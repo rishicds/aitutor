@@ -28,7 +28,7 @@ const subjects: Subject[] = [
     id: "physics",
     name: "Physics Tutor",
     description: "Master physics concepts with interactive learning",
-    image: "/subjects/physics.jpg",
+    image: "/physics.jpg",
     tags: ["Beginner Friendly", "JEE", "NEET"],
     category: "Science"
   },
@@ -36,7 +36,7 @@ const subjects: Subject[] = [
     id: "chemistry",
     name: "Chemistry Tutor",
     description: "Learn chemistry through practical examples",
-    image: "/subjects/chemistry.jpg",
+    image: "/chemistry.png",
     tags: ["Beginner Friendly", "JEE", "NEET"],
     category: "Science"
   },
@@ -44,7 +44,7 @@ const subjects: Subject[] = [
     id: "mathematics",
     name: "Mathematics Tutor",
     description: "Build strong mathematical foundations",
-    image: "/subjects/math.jpg",
+    image: "/maths.jpeg",
     tags: ["Advanced", "JEE", "KVPY"],
     category: "Science"
   },
@@ -52,7 +52,7 @@ const subjects: Subject[] = [
     id: "biology",
     name: "Biology Tutor",
     description: "Explore life sciences in detail",
-    image: "/subjects/biology.jpg",
+    image: "/bio.jpg",
     tags: ["Beginner Friendly", "NEET"],
     category: "Science"
   }

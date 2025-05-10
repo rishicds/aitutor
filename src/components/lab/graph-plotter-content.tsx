@@ -8,7 +8,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trash, Plus, RefreshCw, Download } from "lucide-react"
+import { Trash, Plus, RefreshCw, Download, Wand2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { getGeminiResponse } from "@/lib/gemini"
+
 
 // Function to safely evaluate mathematical expressions
 function evaluateExpression(expression: string, x: number): number | null {
@@ -96,6 +99,12 @@ export default function GraphPlotterContent() {
   const [showGrid, setShowGrid] = useState(true)
   const [showAxes, setShowAxes] = useState(true)
 
+  // New state variables for AI math assistant
+  const [mathQuery, setMathQuery] = useState<string>("")
+  const [mathResponse, setMathResponse] = useState<string>("")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [lastAddedFunction, setLastAddedFunction] = useState<string | null>(null)
+
   // Function to add a new function
   const addFunction = () => {
     const newId = (Math.max(0, ...functions.map((f) => Number.parseInt(f.id))) + 1).toString()
@@ -163,6 +172,61 @@ export default function GraphPlotterContent() {
     if (!isNaN(numericValue)) {
       setter(numericValue)
     }
+  }
+
+  // Function to process math queries with AI
+  const processMathQuery = async () => {
+    if (!mathQuery.trim()) return
+
+    setIsProcessing(true)
+    try {
+      // Create a specialized prompt for math assistance
+      const tutorParams = {
+        subject: "math",
+        level: "intermediate" as const,
+        personality: "neutral" as const,
+        teachingStyle: "conceptual" as const,
+        extraNotes: "Focus on algebraic simplification, equation solving, and function suggestions for graphing."
+      }
+      
+      const aiResponse = await getGeminiResponse(
+        `I'm using a graphing calculator. Please help me with this math question: ${mathQuery}. 
+        If my query contains an equation or expression, simplify it if possible. 
+        If I'm asking about what functions to graph, suggest interesting functions with brief explanations.
+        Format any mathematical expressions properly.`, 
+        tutorParams
+      )
+      
+      setMathResponse(aiResponse)
+    } catch (error) {
+      console.error("Error processing math query:", error)
+      setMathResponse("Sorry, there was an error processing your request. Please try again.")
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Function to add a suggested function from AI response
+  const addSuggestedFunction = (expression: string) => {
+    const newId = (Math.max(0, ...functions.map((f) => Number.parseInt(f.id))) + 1).toString()
+    const colorIndex = functions.length % COLORS.length
+    
+    setFunctions([
+      ...functions,
+      {
+        id: newId,
+        expression: expression,
+        color: COLORS[colorIndex],
+        visible: true,
+      },
+    ])
+    
+    setLastAddedFunction(expression)
+    
+    // Clear the last added function after a delay
+    setTimeout(() => {
+      setLastAddedFunction(null)
+    }, 3000)
   }
 
   // Draw the graph
@@ -391,12 +455,15 @@ export default function GraphPlotterContent() {
     <div className="flex flex-col md:flex-row gap-6 p-4 h-full">
       <div className="flex-1 flex flex-col">
         <Tabs defaultValue="functions" className="w-full">
-          <TabsList className="grid grid-cols-2 mb-4">
+          <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="functions">
               Functions
             </TabsTrigger>
             <TabsTrigger value="settings">
               Graph Settings
+            </TabsTrigger>
+            <TabsTrigger value="math-assist">
+              Math Assistant
             </TabsTrigger>
           </TabsList>
 
@@ -616,6 +683,101 @@ export default function GraphPlotterContent() {
                       <Download className="mr-2 h-4 w-4" />
                       Save as Image
                     </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* New Math Assistant Tab */}
+          <TabsContent value="math-assist" className="space-y-4 mt-0">
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-4">AI Math Assistant</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="mathQuery" className="mb-2 block">Ask a math question or enter an expression to simplify</Label>
+                    <Textarea
+                      id="mathQuery"
+                      value={mathQuery}
+                      onChange={(e) => setMathQuery(e.target.value)}
+                      placeholder="e.g., 'Simplify (x^2 - 9)/(x - 3)' or 'Suggest interesting trigonometric functions to graph'"
+                      className="min-h-[100px]" 
+                    />
+                  </div>
+
+                  <Button
+                    onClick={processMathQuery}
+                    className="w-full"
+                    disabled={isProcessing || !mathQuery.trim()}
+                  >
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    {isProcessing ? "Processing..." : "Get Math Help"}
+                  </Button>
+
+                  {mathResponse && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Response:</h4>
+                      <div className="bg-gray-50 p-4 rounded-lg prose max-w-none max-h-[240px] overflow-y-auto">
+                        <div dangerouslySetInnerHTML={{ __html: mathResponse.replace(/\n/g, '<br>') }} />
+                      </div>
+                      
+                      {/* Extract expressions from the response using regex */}
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Suggested Functions:</h4>
+                        <div className="grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto">
+                          {Array.from(
+                            mathResponse.matchAll(/`([^`]+)`|\\begin\{align\}([^\\]+)\\end\{align\}|\$([^\$]+)\$/g)
+                          ).map((match, index) => {
+                            const expression = (match[1] || match[2] || match[3] || "").trim()
+                              .replace(/\\cdot/g, "*")
+                              .replace(/\\times/g, "*")
+                              .replace(/\\div/g, "/")
+                              .replace(/\\sqrt/g, "sqrt")
+                              .replace(/\\sin/g, "sin")
+                              .replace(/\\cos/g, "cos")
+                              .replace(/\\tan/g, "tan")
+                              .replace(/\\pi/g, "pi")
+                              .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1)/($2)")
+
+                            // Skip empty or obviously non-function expressions
+                            if (!expression || !expression.includes("x") || expression.length > 50) return null
+
+                            return (
+                              <div key={index} className="flex items-center">
+                                <code className="flex-grow p-2 bg-gray-100 rounded">{expression}</code>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => addSuggestedFunction(expression)}
+                                  className="ml-2"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                  Add
+                                </Button>
+                              </div>
+                            )
+                          }).filter(Boolean)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {lastAddedFunction && (
+                    <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md">
+                      Function <code>{lastAddedFunction}</code> added successfully!
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 border-t pt-4">
+                    <h4 className="font-medium mb-2">You can ask:</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      <li>Simplify trigonometric expressions</li>
+                      <li>Factor polynomials</li>
+                      <li>Solve equations</li>
+                      <li>Get suggestions for interesting functions to graph</li>
+                      <li>Help understanding function behavior</li>
+                    </ul>
                   </div>
                 </div>
               </CardContent>

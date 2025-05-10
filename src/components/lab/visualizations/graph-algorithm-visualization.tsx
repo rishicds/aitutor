@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Play } from "lucide-react"
 
+
 interface GraphNode {
   id: number
   x: number
@@ -33,6 +34,8 @@ export default function GraphAlgorithmVisualization({
   const [currentNode, setCurrentNode] = useState<number | null>(null)
   const [startNode, setStartNode] = useState<number>(0)
 
+
+    
   // Initialize canvas and create initial graph
   useEffect(() => {
     if (!canvasRef.current) return

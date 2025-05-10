@@ -7,102 +7,87 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Play, Pause, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react'
-import LinkedListVisualization from "./visualizations/linked-list-visualization"
-import DynamicProgrammingVisualization from "./visualizations/dynamic-programming-visualization"
-import SortingVisualization from "./visualizations/sorting-visualization"
-import GraphAlgorithmVisualization from "./visualizations/graph-algorithm-visualization"
-import SearchingVisualization from "./visualizations/searching-visualization"
-import GreedyAlgorithmVisualization from "./visualizations/greedy-algorithm-visualization"
-// Define the available visualizations
-const VISUALIZATIONS = [
-  { id: "linked-list", name: "Linked List", description: "Visualize singly and doubly linked lists operations" },
-  {
-    id: "dynamic-programming",
+
+// Import visualizations using dynamic imports for code splitting
+import dynamic from 'next/dynamic'
+
+// Define visualization components with lazy loading
+const Visualizations = {
+  'linked-list': dynamic(() => import('./visualizations/linked-list-visualization'), { ssr: false }),
+  'dynamic-programming': dynamic(() => import('./visualizations/dynamic-programming-visualization'), { ssr: false }),
+  'sorting': dynamic(() => import('./visualizations/sorting-visualization'), { ssr: false }),
+  'graph': dynamic(() => import('./visualizations/graph-algorithm-visualization'), { ssr: false }),
+  'searching': dynamic(() => import('./visualizations/searching-visualization'), { ssr: false }),
+  'greedy': dynamic(() => import('./visualizations/greedy-algorithm-visualization'), { ssr: false }),
+}
+
+// Algorithm details - moved outside component to avoid recreating on each render
+const ALGORITHM_DATA = {
+  "linked-list": {
+    name: "Linked List Operations",
+    description: "A linked list is a linear data structure where elements are stored in nodes, and each node points to the next node in the sequence.",
+    operations: ["Insertion (at beginning, end, or position)", "Deletion (from beginning, end, or position)", "Traversal", "Searching", "Reversal"],
+    complexity: ["Access: O(n)", "Search: O(n)", "Insertion: O(1) - with reference to node", "Deletion: O(1) - with reference to node"],
+    maxSteps: 10
+  },
+  "dynamic-programming": {
     name: "Dynamic Programming",
-    description: "Visualize DP algorithms like Fibonacci and Knapsack",
+    description: "Dynamic Programming is an algorithmic technique for solving complex problems by breaking them down into simpler subproblems and storing the results to avoid redundant calculations.",
+    concepts: ["Optimal Substructure", "Overlapping Subproblems", "Memoization (Top-down)", "Tabulation (Bottom-up)"],
+    problems: ["Fibonacci Sequence", "Knapsack Problem", "Longest Common Subsequence", "Matrix Chain Multiplication"],
+    maxSteps: 15
   },
-  { id: "sorting", name: "Sorting Algorithms", description: "Visualize various sorting algorithms in 3D space" },
-  { id: "graph", name: "Graph Algorithms", description: "Visualize graph traversal and shortest path algorithms" },
-  {
-    id: "searching",
-    name: "Searching Algorithms",
-    description: "Visualize binary search and other searching techniques",
+  "sorting": {
+    name: "Sorting Algorithms",
+    description: "Sorting algorithms arrange elements in a specific order, typically in ascending or descending order.",
+    algorithms: ["Bubble Sort - O(n²)", "Selection Sort - O(n²)", "Insertion Sort - O(n²)", "Merge Sort - O(n log n)", "Quick Sort - O(n log n) average", "Heap Sort - O(n log n)"],
+    maxSteps: 20
   },
-  {
-    id: "greedy",
+  "graph": {
+    name: "Graph Algorithms",
+    description: "Graph algorithms solve problems related to graph data structures, consisting of vertices and edges.",
+    algorithms: ["Breadth-First Search (BFS)", "Depth-First Search (DFS)", "Dijkstra's Algorithm", "Bellman-Ford Algorithm", "Minimum Spanning Tree (Prim's, Kruskal's)"],
+    maxSteps: 12
+  },
+  "searching": {
+    name: "Searching Algorithms", 
+    description: "Searching algorithms find the position of a target value within a data structure.",
+    algorithms: ["Linear Search - O(n)", "Binary Search - O(log n)", "Jump Search - O(√n)", "Interpolation Search - O(log log n) average", "Exponential Search - O(log n)"],
+    maxSteps: 8
+  },
+  "greedy": {
     name: "Greedy Algorithms",
-    description: "Visualize greedy algorithms like Minimum Spanning Tree and Activity Selection",
+    description: "Greedy algorithms make locally optimal choices at each step with the hope of finding a global optimum.",
+    characteristics: ["Makes locally optimal choices", "Never reconsiders previous choices", "Simple and efficient implementation", "May not always find the global optimum"],
+    problems: ["Minimum Spanning Tree (Kruskal's, Prim's)", "Activity Selection Problem", "Huffman Coding", "Fractional Knapsack", "Coin Change (with certain constraints)"],
+    maxSteps: 15
   },
-  {
-    id: "backtracking",
+  "backtracking": {
     name: "Backtracking",
-    description: "Visualize backtracking algorithms like N-Queens and Sudoku Solver",
-  },
-]
+    description: "Backtracking is an algorithmic technique that builds solutions incrementally and abandons a solution as soon as it determines the solution cannot be completed.",
+    characteristics: ["Depth-first search approach", "Explores all possible solutions", "Prunes search space when constraints are violated", "Often used for constraint satisfaction problems"],
+    problems: ["N-Queens Problem", "Sudoku Solver", "Maze Solving", "Hamiltonian Path", "Subset Sum"],
+    maxSteps: 25
+  }
+}
+
+// Visualization options - for the select dropdown
+const VISUALIZATIONS = Object.entries(ALGORITHM_DATA).map(([id, data]) => ({
+  id,
+  name: data.name,
+  description: data.description
+}))
 
 export default function DSAVisualizationLab() {
-  const [activeVisualization, setActiveVisualization] = useState("linked-list")
+  const [activeVisualization, setActiveVisualization] = useState("dynamic-programming")
   const [speed, setSpeed] = useState(50)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
-  const [maxSteps, setMaxSteps] = useState(0)
+  const [maxSteps, setMaxSteps] = useState(ALGORITHM_DATA["linked-list"].maxSteps)
 
-  // Function to handle play/pause
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying)
-  }
-
-  // Function to reset visualization
-  const resetVisualization = () => {
-    setCurrentStep(0)
-    setIsPlaying(false)
-  }
-
-  // Function to step forward
-  const stepForward = () => {
-    if (currentStep < maxSteps) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  // Function to step backward
-  const stepBackward = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  // Update maxSteps based on the active visualization
+  // Reset visualization state when changing algorithm
   useEffect(() => {
-    // This would be set dynamically based on the actual visualization
-    // For now, setting some default values
-    switch (activeVisualization) {
-      case "linked-list":
-        setMaxSteps(10)
-        break
-      case "dynamic-programming":
-        setMaxSteps(15)
-        break
-      case "sorting":
-        setMaxSteps(20)
-        break
-      case "graph":
-        setMaxSteps(12)
-        break
-      case "searching":
-        setMaxSteps(8)
-        break
-      case "greedy":
-        setMaxSteps(15)
-        break
-      case "backtracking":
-        setMaxSteps(25)
-        break
-      default:
-        setMaxSteps(10)
-    }
-
-    // Reset to step 0 when changing visualizations
+    setMaxSteps(ALGORITHM_DATA[activeVisualization].maxSteps)
     setCurrentStep(0)
     setIsPlaying(false)
   }, [activeVisualization])
@@ -111,52 +96,41 @@ export default function DSAVisualizationLab() {
   useEffect(() => {
     if (!isPlaying) return
 
-    const interval = setInterval(
-      () => {
-        setCurrentStep((prev) => {
-          if (prev >= maxSteps) {
-            setIsPlaying(false)
-            return prev
-          }
-          return prev + 1
-        })
-      },
-      1000 - speed * 9,
-    ) // Map 1-100 to 100ms-1000ms
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev >= maxSteps) {
+          setIsPlaying(false)
+          return prev
+        }
+        return prev + 1
+      })
+    }, 1000 - speed * 9) // Map 1-100 to 100ms-1000ms
 
     return () => clearInterval(interval)
   }, [isPlaying, maxSteps, speed])
 
-  // Render the appropriate visualization component
-  const renderVisualization = () => {
-    const props = {
-      currentStep,
-      speed,
-      isPlaying,
-    }
-
-    switch (activeVisualization) {
-      case "linked-list":
-        return <LinkedListVisualization />
-      case "dynamic-programming":
-        return <DynamicProgrammingVisualization {...props} />
-      case "sorting":
-        return <SortingVisualization {...props} />
-      case "graph":
-        return <GraphAlgorithmVisualization {...props} />
-      case "searching":
-        return <SearchingVisualization {...props} />
-      case "greedy":
-        return <GreedyAlgorithmVisualization {...props} />
-      
-      default:
-        return <div>Select a visualization</div>
-    }
+  // Action handlers consolidated into a single object
+  const controls = {
+    togglePlayPause: () => setIsPlaying(prev => !prev),
+    resetVisualization: () => {
+      setCurrentStep(0)
+      setIsPlaying(false)
+    },
+    stepForward: () => currentStep < maxSteps && setCurrentStep(prev => prev + 1),
+    stepBackward: () => currentStep > 0 && setCurrentStep(prev => prev - 1)
   }
+
+  // Get current algorithm data
+  const currentAlgorithm = ALGORITHM_DATA[activeVisualization]
+  
+  // Get current visualization component
+  const CurrentVisualization = Visualizations[activeVisualization]
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
+      {/* Control Panel */}
       <div className="lg:w-1/3 space-y-4">
+        {/* Visualization Selection */}
         <Card>
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-4 text-black">Select Visualization</h2>
@@ -173,24 +147,24 @@ export default function DSAVisualizationLab() {
                   ))}
                 </SelectContent>
               </Select>
-
               <div className="text-sm text-muted-foreground">
-                {VISUALIZATIONS.find((v) => v.id === activeVisualization)?.description}
+                {currentAlgorithm.description}
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Controls Card */}
         <Card>
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-4 text-black">Controls</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <Button variant="outline" size="icon" onClick={stepBackward} disabled={currentStep === 0}>
+                <Button variant="outline" size="icon" onClick={controls.stepBackward} disabled={currentStep === 0}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
 
-                <Button variant={isPlaying ? "destructive" : "default"} onClick={togglePlayPause} className="px-6">
+                <Button variant={isPlaying ? "destructive" : "default"} onClick={controls.togglePlayPause} className="px-6">
                   {isPlaying ? (
                     <>
                       <Pause className="mr-2 h-4 w-4" />
@@ -204,12 +178,12 @@ export default function DSAVisualizationLab() {
                   )}
                 </Button>
 
-                <Button variant="outline" size="icon" onClick={stepForward} disabled={currentStep === maxSteps}>
+                <Button variant="outline" size="icon" onClick={controls.stepForward} disabled={currentStep === maxSteps}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
 
-              <Button variant="outline" onClick={resetVisualization} className="w-full">
+              <Button variant="outline" onClick={controls.resetVisualization} className="w-full">
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Reset
               </Button>
@@ -234,6 +208,7 @@ export default function DSAVisualizationLab() {
                 <span>Faster</span>
               </div>
 
+              {/* Progress Bar */}
               <div className="pt-2 border-t">
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium text-black">Current Step:</span>
@@ -252,186 +227,88 @@ export default function DSAVisualizationLab() {
           </CardContent>
         </Card>
 
+        {/* Algorithm Details Card - Rendered dynamically based on current algorithm */}
         <Card>
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-4 text-black">Algorithm Details</h2>
             <div className="space-y-4">
-              {activeVisualization === "linked-list" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Linked List Operations</h3>
-                  <p className="text-sm text-muted-foreground">
-                    A linked list is a linear data structure where elements are stored in nodes, and each node points to
-                    the next node in the sequence.
-                  </p>
+              <div className="space-y-2">
+                <h3 className="font-medium text-black">{currentAlgorithm.name}</h3>
+                <p className="text-sm text-muted-foreground">{currentAlgorithm.description}</p>
+                
+                {currentAlgorithm.operations && (
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Operations:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Insertion (at beginning, end, or position)</li>
-                      <li>Deletion (from beginning, end, or position)</li>
-                      <li>Traversal</li>
-                      <li>Searching</li>
-                      <li>Reversal</li>
+                      {currentAlgorithm.operations.map((op, i) => <li key={i}>{op}</li>)}
                     </ul>
                   </div>
+                )}
+                
+                {currentAlgorithm.complexity && (
                   <div className="text-sm space-y-1 pt-2">
                     <div className="font-medium text-black">Time Complexity:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Access: O(n)</li>
-                      <li>Search: O(n)</li>
-                      <li>Insertion: O(1) - with reference to node</li>
-                      <li>Deletion: O(1) - with reference to node</li>
+                      {currentAlgorithm.complexity.map((item, i) => <li key={i}>{item}</li>)}
                     </ul>
                   </div>
-                </div>
-              )}
-
-              {activeVisualization === "dynamic-programming" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Dynamic Programming</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Dynamic Programming is an algorithmic technique for solving complex problems by breaking them down
-                    into simpler subproblems and storing the results to avoid redundant calculations.
-                  </p>
+                )}
+                
+                {currentAlgorithm.concepts && (
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Key Concepts:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Optimal Substructure</li>
-                      <li>Overlapping Subproblems</li>
-                      <li>Memoization (Top-down)</li>
-                      <li>Tabulation (Bottom-up)</li>
+                      {currentAlgorithm.concepts.map((concept, i) => <li key={i}>{concept}</li>)}
                     </ul>
                   </div>
+                )}
+                
+                {currentAlgorithm.algorithms && (
+                  <div className="text-sm space-y-1">
+                    <div className="font-medium text-black">Common Algorithms:</div>
+                    <ul className="list-disc list-inside text-muted-foreground">
+                      {currentAlgorithm.algorithms.map((algo, i) => <li key={i}>{algo}</li>)}
+                    </ul>
+                  </div>
+                )}
+                
+                {currentAlgorithm.problems && (
                   <div className="text-sm space-y-1 pt-2">
                     <div className="font-medium text-black">Common Problems:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Fibonacci Sequence</li>
-                      <li>Knapsack Problem</li>
-                      <li>Longest Common Subsequence</li>
-                      <li>Matrix Chain Multiplication</li>
+                      {currentAlgorithm.problems.map((problem, i) => <li key={i}>{problem}</li>)}
                     </ul>
                   </div>
-                </div>
-              )}
-
-              {activeVisualization === "sorting" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Sorting Algorithms</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Sorting algorithms arrange elements in a specific order, typically in ascending or descending order.
-                  </p>
-                  <div className="text-sm space-y-1">
-                    <div className="font-medium text-black">Common Algorithms:</div>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Bubble Sort - O(n²)</li>
-                      <li>Selection Sort - O(n²)</li>
-                      <li>Insertion Sort - O(n²)</li>
-                      <li>Merge Sort - O(n log n)</li>
-                      <li>Quick Sort - O(n log n) average</li>
-                      <li>Heap Sort - O(n log n)</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {activeVisualization === "graph" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Graph Algorithms</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Graph algorithms solve problems related to graph data structures, consisting of vertices and edges.
-                  </p>
-                  <div className="text-sm space-y-1">
-                    <div className="font-medium text-black">Common Algorithms:</div>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Breadth-First Search (BFS)</li>
-                      <li>Depth-First Search (DFS)</li>
-                      <li>Dijkstra's Algorithm</li>
-                      <li>Bellman-Ford Algorithm</li>
-                      <li>Minimum Spanning Tree (Prim's, Kruskal's)</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {activeVisualization === "searching" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Searching Algorithms</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Searching algorithms find the position of a target value within a data structure.
-                  </p>
-                  <div className="text-sm space-y-1">
-                    <div className="font-medium text-black">Common Algorithms:</div>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Linear Search - O(n)</li>
-                      <li>Binary Search - O(log n)</li>
-                      <li>Jump Search - O(√n)</li>
-                      <li>Interpolation Search - O(log log n) average</li>
-                      <li>Exponential Search - O(log n)</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {activeVisualization === "greedy" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Greedy Algorithms</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Greedy algorithms make locally optimal choices at each step with the hope of finding a global optimum.
-                  </p>
+                )}
+                
+                {currentAlgorithm.characteristics && (
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Key Characteristics:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Makes locally optimal choices</li>
-                      <li>Never reconsiders previous choices</li>
-                      <li>Simple and efficient implementation</li>
-                      <li>May not always find the global optimum</li>
+                      {currentAlgorithm.characteristics.map((char, i) => <li key={i}>{char}</li>)}
                     </ul>
                   </div>
-                  <div className="text-sm space-y-1 pt-2">
-                    <div className="font-medium text-black">Common Problems:</div>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Minimum Spanning Tree (Kruskal's, Prim's)</li>
-                      <li>Activity Selection Problem</li>
-                      <li>Huffman Coding</li>
-                      <li>Fractional Knapsack</li>
-                      <li>Coin Change (with certain constraints)</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {activeVisualization === "backtracking" && (
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black">Backtracking</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Backtracking is an algorithmic technique that builds solutions incrementally and abandons a solution as soon as it determines the solution cannot be completed.
-                  </p>
-                  <div className="text-sm space-y-1">
-                    <div className="font-medium text-black">Key Characteristics:</div>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      <li>Depth-first search approach</li>
-                      <li>Explores all possible solutions</li>
-                      <li>Prunes search space when constraints are violated</li>
-                      <li>Often used for constraint satisfaction problems</li>
-                    </ul>
-                  </div>
-                  <div className="text-sm space-y-1 pt-2">
-                    <div className="font-medium text-black">Common Problems:</div>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      <li>N-Queens Problem</li>
-                      <li>Sudoku Solver</li>
-                      <li>Maze Solving</li>
-                      <li>Hamiltonian Path</li>
-                      <li>Subset Sum</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="lg:w-2/3 bg-white rounded-lg overflow-hidden h-[600px] border border-gray-200">{renderVisualization()}</div>
+      {/* Visualization Area */}
+      <div className="lg:w-2/3 bg-white rounded-lg overflow-hidden h-[600px] border border-gray-200">
+        {CurrentVisualization ? (
+          <CurrentVisualization 
+            currentStep={currentStep} 
+            speed={speed} 
+            isPlaying={isPlaying} 
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            Select a visualization
+          </div>
+        )}
+      </div>
     </div>
   )
 }

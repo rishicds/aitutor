@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, Trash, Search } from "lucide-react"
 
+
 // Node class for linked list
 class ListNode {
   value: number
@@ -33,6 +34,8 @@ export default function LinkedListVisualization() {
   const [nodePosition, setNodePosition] = useState<string>("0")
   const [listSize, setListSize] = useState<number>(0)
   const [message, setMessage] = useState<string>("")
+
+  
   
   // Initialize canvas and create initial linked list
   useEffect(() => {

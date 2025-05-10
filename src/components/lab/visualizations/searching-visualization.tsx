@@ -24,6 +24,8 @@ export default function SearchingVisualization({ currentStep = 0, speed = 1, isP
   
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+
+  
   // Initialize canvas and generate initial array
   useEffect(() => {
     generateSortedArray()

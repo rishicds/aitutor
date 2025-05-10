@@ -96,6 +96,7 @@ export default function ProfilePage() {
           subjectsStudied: data.subjects?.length || 0,
           averageScore: data.averageScore || 0
         })
+        console.log("User data fetched:", data)
       } else {
         // Initialize user data if it doesn't exist
         setUserData({
@@ -211,7 +212,7 @@ export default function ProfilePage() {
         <div className={`${lavenderColors.glassmorphism} p-10 rounded-lg shadow-lg max-w-md mx-auto`}>
           <p className="text-lg mb-4">Please log in to view your profile.</p>
           <button 
-            onClick={() => window.location.href = "/login"} 
+            onClick={() => window.location.href = "/signin"} 
             className="bg-lavender-600 text-white px-4 py-2 rounded-lg hover:bg-lavender-700 transition duration-300"
           >
             Log In

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Play, Pause, SkipForward, SkipBack } from "lucide-react"
 
+
 interface DynamicProgrammingVisualizationProps {
   currentStep: number
   speed: number
@@ -30,6 +31,10 @@ export default function DynamicProgrammingVisualization({
   const [message, setMessage] = useState<string>("")
   const [activeCell, setActiveCell] = useState<{i: number, j: number} | null>(null)
   const [steps, setSteps] = useState<{i: number, j: number, message: string}[]>([])
+
+
+
+  
 
   // Run the selected algorithm and create visualization data
   const executeAlgorithm = () => {

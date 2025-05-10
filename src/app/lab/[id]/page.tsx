@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import ExperimentViewer from "@/components/lab/experiment-viewer"
 
+
 // Define experiment interface
 interface Experiment {
   id: string
