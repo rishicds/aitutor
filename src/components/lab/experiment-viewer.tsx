@@ -12,8 +12,8 @@ import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2 } from "l
 import type * as THREE from "three"
 import AIAnalysis from "./ai-analysis"
 import SaltAnalysisContent from "./salt-analysis-content"
-
 import GraphPlotterContent from "./graph-plotter-content"
+import DSAVisualizationLab from "@/app/dsa/page"
 
 // Define experiment interface
 interface Experiment {
@@ -328,7 +328,9 @@ export default function ExperimentViewer({ experiment }: { experiment: Experimen
     }  else if (experiment.id === "graph-plotter") {
       return <GraphPlotterContent />
     }
-
+    else if (experiment.id === "dsa-visualization") {
+      return <DSAVisualizationLab />
+    }
     // For 3D experiments, render in the Canvas
     switch (experiment.id) {
       case "pendulum-motion":
