@@ -22,7 +22,7 @@ export async function getGeminiVoiceResponse(
       throw new Error("Gemini API key is not configured")
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
 
     // Create the request body
     const requestBody = {
