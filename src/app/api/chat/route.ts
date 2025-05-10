@@ -59,180 +59,137 @@ For chat responses:
   "subjectContext": string
 }`;
 
+const SUBJECT_PROMPTS = {
+  physics: `You are a physics tutor. Only answer questions related to physics. If asked about other subjects, politely redirect to the relevant subject.
+IMPORTANT INSTRUCTIONS:
+1. Always respond in plain text without any markdown formatting.
+2. Never use asterisks, backticks, or other markdown symbols except for valid Mermaid code blocks.
+3. For equations, write them in plain text form.
+4. If the user asks for a flowchart or diagram, ALWAYS include a valid Mermaid code block (inside triple backticks with 'mermaid') at the END of your response. Do not describe the diagram in text if a Mermaid diagram is provided.
+5. Always end your response with a "Resources" section that suggests:
+   - A mock test at /practice
+   - Previous year questions at /pyq
+   - Relevant lab experiments at /lab
+6. Keep explanations clear and conversational.`,
+  chemistry: `You are a chemistry tutor. Only answer questions related to chemistry. If asked about other subjects, politely redirect to the relevant subject.
+IMPORTANT INSTRUCTIONS:
+1. Always respond in plain text without any markdown formatting.
+2. Never use asterisks, backticks, or other markdown symbols except for valid Mermaid code blocks.
+3. For equations, write them in plain text form.
+4. If the user asks for a flowchart or diagram, ALWAYS include a valid Mermaid code block (inside triple backticks with 'mermaid') at the END of your response. Do not describe the diagram in text if a Mermaid diagram is provided.
+5. Always end your response with a "Resources" section that suggests:
+   - A mock test at /practice
+   - Previous year questions at /pyq
+   - Relevant lab experiments at /lab
+6. Keep explanations clear and conversational.`,
+  mathematics: `You are a mathematics tutor. Only answer questions related to mathematics. If asked about other subjects, politely redirect to the relevant subject.
+IMPORTANT INSTRUCTIONS:
+1. Always respond in plain text without any markdown formatting.
+2. Never use asterisks, backticks, or other markdown symbols except for valid Mermaid code blocks.
+3. For equations, write them in plain text form.
+4. If the user asks for a flowchart or diagram, ALWAYS include a valid Mermaid code block (inside triple backticks with 'mermaid') at the END of your response. Do not describe the diagram in text if a Mermaid diagram is provided.
+5. Always end your response with a "Resources" section that suggests:
+   - A mock test at /practice
+   - Previous year questions at /pyq
+   - Practice problems at /lab
+6. Keep explanations clear and conversational.`,
+  biology: `You are a biology tutor. Only answer questions related to biology. If asked about other subjects, politely redirect to the relevant subject.
+IMPORTANT INSTRUCTIONS:
+1. Always respond in plain text without any markdown formatting.
+2. Never use asterisks, backticks, or other markdown symbols except for valid Mermaid code blocks.
+3. For equations, write them in plain text form.
+4. If the user asks for a flowchart or diagram, ALWAYS include a valid Mermaid code block (inside triple backticks with 'mermaid') at the END of your response. Do not describe the diagram in text if a Mermaid diagram is provided.
+5. Always end your response with a "Resources" section that suggests:
+   - A mock test at /practice
+   - Previous year questions at /pyq
+   - Relevant lab experiments at /lab
+6. Keep explanations clear and conversational.`,
+};
+
 export async function POST(req: Request) {
   try {
-    // Parse the request body
-    const body = await req.json();
-    console.log("Received request body:", body);
+    const { message, subject, history, userId } = await req.json();
 
-    // Extract data with fallbacks
-    const message = body.message || "";
-    const subject = body.context?.subject || body.subject || "General"; // Try context first
-    const course = body.context?.course || body.course || "General";
-    const examCategory =
-      body.context?.examCategory || body.examCategory || null;
-    const userId = body.userId;
-
-    if (!userId) {
+    if (!message || !subject || !userId) {
       return NextResponse.json(
-        { error: "User ID is required" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Initialize the model with proper error handling
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const subjectPrompt = SUBJECT_PROMPTS[subject as keyof typeof SUBJECT_PROMPTS] || "You are a general tutor. Answer questions appropriately. Always respond in plain text without any markdown formatting.";
+
+    // Detect if the user is asking for a diagram/flowchart/chart
+    const diagramKeywords = /diagram|flowchart|chart/i;
+    let prependMermaidInstruction = false;
+    if (diagramKeywords.test(message)) {
+      prependMermaidInstruction = true;
+    }
+
+    // Filter and transform history to ensure it starts with a user message
+    const validHistory = history
+      .filter((msg: any) => msg.role === "user" || msg.role === "assistant")
+      .map((msg: any) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }],
+      }));
+
+    // If history is empty or starts with a model message, add a system message as user
+    if (validHistory.length === 0 || validHistory[0].role === "model") {
+      validHistory.unshift({
+        role: "user",
+        parts: [{ text: subjectPrompt }],
+      });
+    }
+
+    // Prepend explicit Mermaid instruction if needed
+    if (prependMermaidInstruction) {
+      validHistory.unshift({
+        role: "user",
+        parts: [{ text: "For this response, you must include a valid Mermaid code block (inside triple backticks with 'mermaid') at the end. Do not describe the diagram in text if a Mermaid diagram is provided." }],
+      });
+    }
+
+    const chat = model.startChat({
+      history: validHistory,
       generationConfig: {
+        maxOutputTokens: 1000,
         temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
       },
     });
 
-    // First, validate the subject if it's a new chat
-    if (!message) {
-      try {
-        console.log("Validating subject:", subject);
-        const validationPrompt = `${SYSTEM_PROMPT}\n\nValidate this subject: "${subject}". Consider it valid if it's a real academic subject, even if it's specialized or advanced.`;
-        const validationResult = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: validationPrompt }] }],
-        });
-        const validationText = validationResult.response.text();
-        console.log("Validation response:", validationText);
-        let validationData;
+    const result = await chat.sendMessage([{ text: message }]);
+    const response = await result.response;
+    const text = response.text();
 
-        try {
-          const cleanText = validationText
-            .replace(/```json\n?|\n?```/g, "")
-            .trim();
-          validationData = JSON.parse(cleanText);
-          console.log("Parsed validation data:", validationData);
-        } catch (parseError) {
-          console.error("Error parsing validation response:", parseError);
-          validationData = {
-            isValid: true,
-            suggestions: [],
-            reason: "Subject appears valid",
-          };
-        }
-
-        if (validationData.isValid === false) {
-          console.log("Subject validation failed:", validationData);
-          return NextResponse.json(
-            {
-              error: "Invalid subject",
-              suggestions: validationData.suggestions || [],
-              reason: validationData.reason || "Invalid subject",
-            },
-            { status: 400 }
-          );
-        }
-      } catch (error) {
-        console.error("Error validating subject:", error);
-        console.log(
-          "Subject validation failed, proceeding with subject:",
-          subject
-        );
-      }
-    }
-
-    // Prepare the chat context
-    const chatContext = `Subject: "${subject}"
-Course Level: ${course}
-${examCategory ? `Exam Category: ${examCategory}` : ""}
-Previous Message: ${message || "Starting new chat"}`;
-
-    try {
-      console.log("Generating chat response with context:", chatContext);
-      const chatPrompt = `${SYSTEM_PROMPT}\n\nContext:\n${chatContext}\n\n${
-        !message
-          ? `You are a specialized tutor for "${subject}" at ${course} level${
-              examCategory ? ` preparing for ${examCategory}` : ""
-            }. 
-             Your first message MUST:
-             1. Introduce yourself as a specialized tutor for "${subject}" ONLY
-             2. Mention you're teaching at ${course} level
-             3. ${
-               examCategory
-                 ? `Note that you're preparing students for ${examCategory}`
-                 : ""
-             }
-             4. Ask what specific topic within "${subject}" they'd like to learn about
-             DO NOT ask about other subjects or levels. Stay focused on "${subject}" only.`
-          : `Generate an educational response that is focused on "${subject}" at ${course} level${
-              examCategory ? ` and relevant to ${examCategory}` : ""
-            }.`
-      }`;
-
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: chatPrompt }] }],
-      });
-      const responseText = result.response.text();
-      let responseData;
-
-      try {
-        const cleanText = responseText.replace(/```json\n?|\n?```/g, "").trim();
-        responseData = JSON.parse(cleanText);
-      } catch (parseError) {
-        console.error("Error parsing response:", parseError);
-        responseData = {
-          response: responseText,
-          isOnTopic: true,
-          subjectContext: subject,
+    // Extract Mermaid diagram if present
+    let visualization = null;
+    let cleanText = text;
+    if (text.includes("```mermaid")) {
+      const mermaidMatch = text.match(/```mermaid\n([\s\S]*?)```/);
+      if (mermaidMatch) {
+        visualization = {
+          type: "mermaid",
+          code: mermaidMatch[1].trim()
         };
       }
-
-      // Ensure all required fields are present
-      const chatData = {
-        subject: subject,
-        course: course,
-        examCategory: examCategory,
-        messages: [
-          {
-            role: "user",
-            content: message || "",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            role: "assistant",
-            content: responseData.response || responseText,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-        createdAt: serverTimestamp(),
-      };
-
-      // Store the chat in Firestore
-      const chatRef = await addDoc(
-        collection(db, "users", userId, "chats"),
-        chatData
-      );
-
-      return NextResponse.json({
-        response: responseData.response || responseText,
-        isOnTopic: responseData.isOnTopic || true,
-        subjectContext: responseData.subjectContext || subject,
-        chatId: chatRef.id,
-      });
-    } catch (error) {
-      console.error("Error generating response:", error);
-      return NextResponse.json(
-        {
-          error: "Failed to generate response",
-          details: error instanceof Error ? error.message : "Unknown error",
-        },
-        { status: 500 }
-      );
+      cleanText = text.replace(/```mermaid\n[\s\S]*?```/g, "").trim();
+    } else if (/diagram|flowchart|chart/i.test(message)) {
+      // Fallback: inject a sample diagram if requested but not present
+      const sampleMermaid = `graph TD\n  A[Start] --> B{Is nucleus stable?}\n  B -- No --> C[Neutron Absorption]\n  C --> D[Nucleus Splits]\n  D --> E[Energy Released]\n  D --> F[More Fissionable Nuclei?]\n  F -- Yes --> C\n  F -- No --> G[End]`;
+      visualization = { type: "mermaid", code: sampleMermaid };
     }
+
+    return NextResponse.json({ 
+      response: cleanText,
+      visualization: visualization
+    });
   } catch (error) {
     console.error("Error in chat API:", error);
     return NextResponse.json(
-      {
-        error: "Failed to process chat request",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Failed to process request" },
       { status: 500 }
     );
   }

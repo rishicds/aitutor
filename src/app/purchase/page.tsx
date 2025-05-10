@@ -5,12 +5,17 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { auth, db } from "@/lib/firebaseConfig"
 import { doc, getDoc } from "firebase/firestore"
 import { Check, Sparkles, Star, Zap, ShieldCheck, Clock, Users, Award, TrendingUp } from "lucide-react"
+import { toast } from "sonner"
+import jsPDF from "jspdf"
 
 const tokenPackages = [
   {
     id: "studentBasic",
     tokens: 250,
-    price: 49,
+    price: {
+      monthly: 49,
+      yearly: 490, // 10 months price for 12 months
+    },
     color: "from-sky-400 to-sky-600",
     icon: <Zap className="h-8 w-8 mb-2 text-white" />,
     perks: [
@@ -25,7 +30,10 @@ const tokenPackages = [
   {
     id: "studentStandard",
     tokens: 750,
-    price: 159,
+    price: {
+      monthly: 159,
+      yearly: 1590, // 10 months price for 12 months
+    },
     color: "from-purple-500 to-purple-700",
     icon: <Star className="h-8 w-8 mb-2 text-white" />,
     perks: [
@@ -42,7 +50,10 @@ const tokenPackages = [
   {
     id: "studentPro",
     tokens: 2000,
-    price: 299,
+    price: {
+      monthly: 299,
+      yearly: 2990, // 10 months price for 12 months
+    },
     color: "from-pink-500 to-pink-700",
     icon: <Sparkles className="h-8 w-8 mb-2 text-white" />,
     perks: [
@@ -60,7 +71,10 @@ const tokenPackages = [
   {
     id: "studentPower",
     tokens: 5000,
-    price: 699,
+    price: {
+      monthly: 699,
+      yearly: 6990, // 10 months price for 12 months
+    },
     color: "from-indigo-600 to-indigo-800",
     icon: <ShieldCheck className="h-8 w-8 mb-2 text-white" />,
     perks: [
@@ -77,6 +91,7 @@ const tokenPackages = [
 export default function PurchaseTokens() {
   const [user] = useAuthState(auth)
   const [selectedPackage, setSelectedPackage] = useState(tokenPackages[1])
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [currentTokens, setCurrentTokens] = useState(0)
   const [loading, setLoading] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
@@ -116,7 +131,7 @@ export default function PurchaseTokens() {
   const TOTAL_GST_RATE = CGST_RATE + SGST_RATE;
 
   const priceDetails = useMemo(() => {
-    const packageListedPrice_inclusive = selectedPackage.price;
+    const packageListedPrice_inclusive = selectedPackage.price[billingCycle];
     const discountAmount = (packageListedPrice_inclusive * discount) / 100;
     const finalPayableAmount_inclusive = packageListedPrice_inclusive - discountAmount;
 
@@ -132,7 +147,7 @@ export default function PurchaseTokens() {
       cgstComponent,
       sgstComponent,
     };
-  }, [selectedPackage, discount, TOTAL_GST_RATE]);
+  }, [selectedPackage, billingCycle, discount, TOTAL_GST_RATE]);
 
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === "welcome10") {
@@ -215,17 +230,31 @@ export default function PurchaseTokens() {
             const verificationData = await verificationResponse.json() as { verified: boolean }
             
             if (verificationData.verified) {
-              alert("Payment successful! Tokens added to your account.")
+              toast.success("Payment successful! Tokens added to your account.")
               setCurrentTokens((prevTokens) => prevTokens + selectedPackage.tokens)
               setShowConfetti(true)
               setTimeout(() => setShowConfetti(false), 4000)
+
+              // Generate PDF bill
+              const doc = new jsPDF();
+              doc.setFontSize(18);
+              doc.text("BrainBoost - Payment Invoice", 20, 20);
+              doc.setFontSize(12);
+              doc.text(`Date: ${new Date().toLocaleString()}`, 20, 35);
+              doc.text(`User: ${user.displayName || user.email || user.uid}`, 20, 45);
+              doc.text(`Plan: ${selectedPackage.id.replace("student", "")} (${billingCycle})`, 20, 55);
+              doc.text(`Tokens: ${selectedPackage.tokens}`, 20, 65);
+              doc.text(`Amount Paid: ₹${priceDetails.finalPayableAmount_inclusive.toFixed(2)}`, 20, 75);
+              doc.text(`Order ID: ${orderData.id || "-"}`, 20, 85);
+              doc.text("Thank you for your purchase!", 20, 105);
+              doc.save(`BrainBoost_Invoice_${Date.now()}.pdf`);
             } else {
-              alert("Payment verification failed. Please contact support.")
+              toast.error("Payment verification failed. Please contact support.")
             }
           } catch (verifyError) {
             const error = verifyError as Error
             console.error("Payment verification error:", error)
-            alert(`Payment verification failed: ${error.message}`)
+            toast.error(`Payment verification failed: ${error.message}`)
           } finally {
             setLoading(false)
           }
@@ -257,7 +286,7 @@ export default function PurchaseTokens() {
         }
       }) {
         console.error("Razorpay payment failed:", response.error)
-        alert(
+        toast.error(
           `Payment failed: ${response.error.description} (Reason: ${response.error.reason}, Step: ${response.error.step})`
         )
         setLoading(false)
@@ -267,7 +296,7 @@ export default function PurchaseTokens() {
     } catch (error) {
       const err = error as Error
       console.error("Purchase error:", err)
-      alert(`Purchase failed: ${err.message}`)
+      toast.error(`Purchase failed: ${err.message}`)
       setLoading(false)
     }
   }
@@ -302,7 +331,7 @@ export default function PurchaseTokens() {
             Unlock Your <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Full Learning Potential</span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Choose the perfect token package to supercharge your studies with our advanced AI tutors and tools. Get instant help, master complex topics, and achieve your academic goals.
+            Choose the perfect subscription plan to supercharge your studies with our advanced AI tutors and tools. Get instant help, master complex topics, and achieve your academic goals.
           </p>
           {user && (
             <div className="flex justify-center mb-8">
@@ -319,7 +348,31 @@ export default function PurchaseTokens() {
           )}
         </section>
 
-        
+        {/* Billing Cycle Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white p-1 rounded-lg shadow-md inline-flex">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingCycle === 'monthly'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingCycle === 'yearly'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Yearly <span className="text-xs text-green-500 ml-1">Save 20%</span>
+            </button>
+          </div>
+        </div>
 
         <section className="mb-12 md:mb-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
@@ -349,8 +402,11 @@ export default function PurchaseTokens() {
                   <p className="text-center text-gray-500 mb-4 text-sm capitalize">{pkg.id.replace("student", "")} Plan</p>
                   
                   <div className="text-center mb-6">
-                    <span className="text-4xl font-extrabold text-gray-900">₹{pkg.price}</span>
-                    <span className="text-gray-500 text-sm">/one-time</span>
+                    <span className="text-4xl font-extrabold text-gray-900">₹{pkg.price[billingCycle]}</span>
+                    <span className="text-gray-500 text-sm">/{billingCycle}</span>
+                    {billingCycle === 'yearly' && (
+                      <p className="text-sm text-green-600 mt-1">Save 20% with yearly billing</p>
+                    )}
                   </div>
 
                   <ul className="space-y-2 mb-6 text-sm text-gray-600 flex-grow">

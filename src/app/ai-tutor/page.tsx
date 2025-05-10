@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { auth, db } from "@/lib/firebaseConfig";
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { motion } from "framer-motion";
-import { Send, Loader2, ArrowLeft, Volume2, VolumeX } from "lucide-react";
+import { Send, Loader2, Volume2, VolumeX, Sparkles, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -25,11 +25,55 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatPage() {
+// Add these functions before the AITutor component
+const useTypewriter = (text: string, isProcessing: boolean) => {
+  const [displayText, setDisplayText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setDisplayText(text);
+      setCurrentIndex(text.length);
+      return;
+    }
+
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText(text.slice(0, currentIndex + 1));
+        setCurrentIndex(currentIndex + 1);
+      }, 30);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [text, currentIndex, isProcessing]);
+
+  return displayText;
+};
+
+const speakText = (text: string) => {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  window.speechSynthesis.speak(utterance);
+};
+
+export default function AITutor() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [tokens, setTokens] = useState(0);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      content: "Hello! I'm your AI tutor. What would you like to learn about today?",
+      timestamp: new Date(),
+    },
+  ]);
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -38,14 +82,10 @@ export default function ChatPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>("");
-  const [tokens, setTokens] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const speechSynthesis = useRef<SpeechSynthesisUtterance | null>(null);
-
-  const subject = searchParams.get("subject");
-  const course = searchParams.get("course");
-  const examCategory = searchParams.get("examCategory");
+  const subject = searchParams.get("subject") || "";
 
   // Check if mobile
   useEffect(() => {
@@ -57,6 +97,24 @@ export default function ChatPage() {
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
+
+  // Fetch user tokens
+  useEffect(() => {
+    const fetchTokens = async () => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            setTokens(userDoc.data().tokens || 0);
+          }
+        } catch (error) {
+          console.error("Error fetching tokens:", error);
+        }
+      }
+    };
+
+    fetchTokens();
+  }, [user]);
 
   // Fetch available voices on mount
   useEffect(() => {
@@ -83,116 +141,22 @@ export default function ChatPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!user || !subject || !course) {
-      router.push("/dashboard");
-      return;
-    }
-
-    const initializeChat = async () => {
-      try {
-        // Check if chat already exists
-        const chatsQuery = query(
-          collection(db, "users", user.uid, "chats"),
-          where("subject", "==", subject),
-          where("course", "==", course)
-        );
-        const chatsSnapshot = await getDocs(chatsQuery);
-
-        if (chatsSnapshot.empty) {
-          // Create new chat if it doesn't exist
-          const chatRef = await addDoc(collection(db, "users", user.uid, "chats"), {
-            tutorName: `${subject} Tutor`,
-            subject,
-            course,
-            examCategory: examCategory || null,
-            messages: [],
-            createdAt: serverTimestamp(),
-          });
-
-          // Add welcome message
-          const welcomeMessage: Message = {
-            id: Date.now().toString(),
-            role: "assistant",
-            content: `Hello! I'm your ${subject} tutor for ${course} level${
-              examCategory ? `, specializing in ${examCategory}` : ""
-            }. How can I help you today?`,
-            timestamp: new Date(),
-          };
-
-          setMessages([welcomeMessage]);
-
-          // Update the chat document with the welcome message
-          await addDoc(collection(db, "users", user.uid, "chats", chatRef.id, "messages"), {
-            ...welcomeMessage,
-            timestamp: serverTimestamp(),
-          });
-        } else {
-          // Load existing messages
-          const chatDoc = chatsSnapshot.docs[0];
-          const messagesQuery = query(
-            collection(db, "users", user.uid, "chats", chatDoc.id, "messages"),
-            where("timestamp", "!=", null)
-          );
-          const messagesSnapshot = await getDocs(messagesQuery);
-          const loadedMessages = messagesSnapshot.docs.map(doc => ({
-            id: doc.id,
-            role: doc.data().role,
-            content: doc.data().content,
-            timestamp: doc.data().timestamp?.toDate() || new Date(),
-          }));
-          setMessages(loadedMessages);
-        }
-      } catch (error) {
-        console.error("Error initializing chat:", error);
-        alert("Failed to initialize chat. Please try again.");
-      }
-    };
-
-    initializeChat();
-  }, [user, subject, course, examCategory, router]);
-
+  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Speak text
-  const speakText = (text: string) => {
-    if (!window.speechSynthesis) return;
-
-    // Cancel any ongoing speech
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+  // Handle sending a message
+  const handleSendMessage = async () => {
+    if (!input.trim() || isProcessing) return;
+    if (!user) {
+      alert("Please sign in to use the AI Tutor");
       return;
     }
-
-    // Clean text for speech (remove markdown formatting)
-    const cleanText = text
-      .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
-      .replace(/#{1,6}\s?(.*?)(?=\n|$)/g, "$1")
-      .replace(/```[\s\S]*?```/g, "")
-      .replace(/`(.*?)`/g, "$1");
-
-    const utterance = new window.SpeechSynthesisUtterance(cleanText);
-
-    // Use selected voice
-    const voice = voices.find((v) => v.name === selectedVoice);
-    if (voice) utterance.voice = voice;
-
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const handleSendMessage = async () => {
-    if (!input.trim() || isProcessing || !user || !subject || !course) return;
+    if (tokens < 5) {
+      alert("You need at least 5 tokens to use the AI Tutor");
+      return;
+    }
 
     // Cancel any ongoing speech
     if (isSpeaking) {
@@ -207,12 +171,12 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsProcessing(true);
 
     try {
-      // Get response from API
+      // Get response from API with subject guardrails
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -220,9 +184,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           message: input,
-          subject,
-          course,
-          examCategory,
+          subject: subject,
           history: messages.slice(-5),
           userId: user.uid,
         }),
@@ -234,6 +196,7 @@ export default function ChatPage() {
         throw new Error(data.error || "Failed to get response");
       }
 
+      // Add assistant message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -241,41 +204,43 @@ export default function ChatPage() {
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      // Save messages to Firestore
-      const chatsQuery = query(
-        collection(db, "users", user.uid, "chats"),
-        where("subject", "==", subject),
-        where("course", "==", course)
-      );
-      const chatsSnapshot = await getDocs(chatsQuery);
-      
-      if (!chatsSnapshot.empty) {
-        const chatDoc = chatsSnapshot.docs[0];
-        await addDoc(collection(db, "users", user.uid, "chats", chatDoc.id, "messages"), {
-          ...userMessage,
-          timestamp: serverTimestamp(),
-        });
-        await addDoc(collection(db, "users", user.uid, "chats", chatDoc.id, "messages"), {
-          ...assistantMessage,
-          timestamp: serverTimestamp(),
-        });
+      // If there's a visualization, add it as a separate assistant message
+      if (data.visualization && data.visualization.type === "mermaid") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 2).toString(),
+            role: "assistant",
+            content: '```mermaid\n' + data.visualization.code + '\n```',
+            timestamp: new Date(),
+          },
+        ]);
       }
 
       // Extract topic from the conversation
       setCurrentTopic(extractTopic(input, data.response));
 
+      // Deduct tokens
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        tokens: increment(-5),
+      });
+      setTokens((prev) => prev - 5);
+
       // Speak the response
       speakText(data.response);
     } catch (error) {
-      console.error("Error sending message:", error);
-      setMessages(prev => [
+      console.error("Error processing message:", error);
+
+      // Add error message
+      setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "Sorry, there was an error processing your request. Please try again.",
+          content: "I'm sorry, I encountered an error processing your request. Please try again.",
           timestamp: new Date(),
         },
       ]);
@@ -291,9 +256,16 @@ export default function ChatPage() {
     return userTopic.length > 3 ? userTopic : "General Learning";
   };
 
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSendMessage();
+  };
+
   // Find the last assistant message index
-  const lastAssistantIdx = messages.map(m => m.role).lastIndexOf("assistant");
+  const lastAssistantIdx = messages.map((m) => m.role).lastIndexOf("assistant");
   const lastAssistantContent = lastAssistantIdx !== -1 ? extractMainContent(messages[lastAssistantIdx].content) : "";
+  const typewriterText = useTypewriter(lastAssistantContent, isProcessing);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -334,10 +306,12 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col md:flex-row gap-6">
           {/* Chat Panel */}
           <div
-            className={`${isMobile ? "w-full" : "w-1/2"} bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200`}
+            className={`${
+              isMobile ? "w-full" : "w-1/2"
+            } bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200`}
           >
             <div className="h-[60vh] overflow-y-auto p-4 space-y-4">
               {messages.map((message, idx) => {
@@ -353,14 +327,16 @@ export default function ChatPage() {
                   >
                     <div
                       className={`max-w-[80%] rounded-3xl px-5 py-3 shadow-md transition-all duration-200
-                        ${message.role === "user"
-                          ? "bg-gradient-to-br from-lavender-500 to-lavender-400 text-white self-end"
-                          : "bg-white text-gray-900 border border-gray-200 self-start"}
+                        ${
+                          message.role === "user"
+                            ? "bg-gradient-to-br from-lavender-500 to-lavender-400 text-white self-end"
+                            : "bg-white text-gray-900 border border-gray-200 self-start"
+                        }
                         ${isAssistant ? "relative" : ""}`}
                     >
                       {isAssistant && isLastAssistant && isProcessing && (
                         <span className="absolute -top-4 left-2 flex items-center gap-1 text-lavender-500 animate-pulse">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Speaking...
+                          <Loader2 className="h-4 w-4 animate-spin" /> Thinking...
                         </span>
                       )}
                       {message.role === "user" ? (
@@ -368,7 +344,7 @@ export default function ChatPage() {
                       ) : (
                         <div className="prose prose-sm max-w-none">
                           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                            {isLastAssistant && isProcessing ? "" : extractMainContent(message.content)}
+                            {isLastAssistant && isProcessing ? typewriterText : extractMainContent(message.content)}
                           </ReactMarkdown>
                         </div>
                       )}
@@ -416,68 +392,58 @@ export default function ChatPage() {
               </div>
             )}
 
-            <div className="border-t border-gray-200 p-4">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex gap-4"
-              >
+            <div className="p-4 border-t border-gray-200">
+              <form onSubmit={handleSubmit} className="flex items-center space-x-2">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask me anything..."
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-lavender-500"
+                  className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lavender-500"
                   disabled={isProcessing}
                 />
+
                 <button
                   type="submit"
-                  disabled={isProcessing || !input.trim()}
-                  className="bg-lavender-500 text-white px-6 py-2 rounded-lg hover:bg-lavender-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="p-2 bg-lavender-500 text-white rounded-full hover:bg-lavender-600 disabled:opacity-50"
+                  disabled={!input.trim() || isProcessing}
                 >
-                  {isProcessing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                  <span>Send</span>
+                  <Send className="h-5 w-5" />
                 </button>
               </form>
             </div>
           </div>
 
           {/* Learning Canvas */}
-          <div className={`${isMobile ? "hidden" : "w-1/2"} bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200`}>
+          <div className={`${isMobile ? "w-full" : "w-1/2"} bg-white rounded-xl shadow-lg overflow-hidden`}>
             <div className="border-b border-gray-200">
               <div className="flex">
                 <button
                   onClick={() => setActiveTab("visualizations")}
-                  className={`flex-1 py-3 px-4 text-sm font-medium ${
+                  className={`flex-1 py-3 px-4 text-center ${
                     activeTab === "visualizations"
-                      ? "text-lavender-600 border-b-2 border-lavender-500"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "border-b-2 border-lavender-500 text-lavender-600"
+                      : "text-gray-600 hover:text-gray-800"
                   }`}
                 >
                   Visualizations
                 </button>
                 <button
                   onClick={() => setActiveTab("keypoints")}
-                  className={`flex-1 py-3 px-4 text-sm font-medium ${
+                  className={`flex-1 py-3 px-4 text-center ${
                     activeTab === "keypoints"
-                      ? "text-lavender-600 border-b-2 border-lavender-500"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "border-b-2 border-lavender-500 text-lavender-600"
+                      : "text-gray-600 hover:text-gray-800"
                   }`}
                 >
                   Key Points
                 </button>
                 <button
                   onClick={() => setActiveTab("resources")}
-                  className={`flex-1 py-3 px-4 text-sm font-medium ${
+                  className={`flex-1 py-3 px-4 text-center ${
                     activeTab === "resources"
-                      ? "text-lavender-600 border-b-2 border-lavender-500"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "border-b-2 border-lavender-500 text-lavender-600"
+                      : "text-gray-600 hover:text-gray-800"
                   }`}
                 >
                   Resources

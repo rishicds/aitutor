@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { MessageSquare, Book, Clock, ArrowRight } from "lucide-react";
+import { MessageSquare, Book, Clock, ArrowRight, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebaseConfig";
+import { collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
 
 interface TutorCardProps {
   id: string;
@@ -11,6 +13,7 @@ interface TutorCardProps {
   lastChatDate?: Date;
   messageCount: number;
   lastMessage: string;
+  onDelete?: () => void;
 }
 
 export default function TutorCard({
@@ -22,8 +25,46 @@ export default function TutorCard({
   lastChatDate,
   messageCount,
   lastMessage,
+  onDelete,
 }: TutorCardProps) {
   const router = useRouter();
+
+  const handleDelete = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      // Delete all chats for this tutor
+      const chatsQuery = query(
+        collection(db, "users", auth.currentUser.uid, "chats"),
+        where("subject", "==", subject),
+        where("course", "==", course)
+      );
+      const chatsSnapshot = await getDocs(chatsQuery);
+      
+      // Delete each chat document
+      const deletePromises = chatsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      // Delete the tutor document
+      const tutorsQuery = query(
+        collection(db, "users", auth.currentUser.uid, "tutors"),
+        where("subject", "==", subject),
+        where("course", "==", course)
+      );
+      const tutorsSnapshot = await getDocs(tutorsQuery);
+      
+      const tutorDeletePromises = tutorsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(tutorDeletePromises);
+      
+      // Call the onDelete callback to refresh the parent component
+      if (onDelete) {
+        onDelete();
+      }
+    } catch (error) {
+      console.error("Error deleting tutor:", error);
+      alert("Failed to delete tutor. Please try again.");
+    }
+  };
 
   const formatDate = (date?: Date) => {
     if (!date) return "No chats yet";
@@ -54,8 +95,17 @@ export default function TutorCard({
               {examCategory && ` • ${examCategory}`}
             </p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-            <Book className="w-6 h-6 text-blue-600" />
+          <div className="flex gap-2">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <Book className="w-6 h-6 text-blue-600" />
+            </div>
+            <button
+              onClick={handleDelete}
+              className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center hover:bg-red-200 transition-colors"
+              title="Delete Tutor"
+            >
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </button>
           </div>
         </div>
 
