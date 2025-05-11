@@ -1,12 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
-import { Play, Pause, RotateCcw, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Play, Pause, RotateCcw, ChevronRight, ChevronLeft, Code, Eye } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
 
 // Import visualizations using dynamic imports for code splitting
 import dynamic from 'next/dynamic'
@@ -78,19 +81,57 @@ const VISUALIZATIONS = Object.entries(ALGORITHM_DATA).map(([id, data]) => ({
   description: data.description
 }))
 
+// Helper function to generate code using AI
+async function generateDSACode(algorithm: string, prompt: string) {
+  try {
+    const response = await fetch('/api/generate-code', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        algorithm,
+        prompt
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate code');
+    }
+    
+    const data = await response.json();
+    return data.code;
+  } catch (error) {
+    console.error('Error generating code:', error);
+    throw error;
+  }
+}
+
 export default function DSAVisualizationLab() {
   const [activeVisualization, setActiveVisualization] = useState("dynamic-programming")
   const [speed, setSpeed] = useState(50)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [maxSteps, setMaxSteps] = useState(ALGORITHM_DATA["linked-list"].maxSteps)
+  const [activeTab, setActiveTab] = useState("visualize")
+  const [codePrompt, setCodePrompt] = useState("")
+  const [generatedCode, setGeneratedCode] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [savedCodes, setSavedCodes] = useState<Record<string, string>>({})
+  const { toast } = useToast()
 
   // Reset visualization state when changing algorithm
   useEffect(() => {
     setMaxSteps(ALGORITHM_DATA[activeVisualization].maxSteps)
     setCurrentStep(0)
     setIsPlaying(false)
-  }, [activeVisualization])
+    // Load previously saved code for this algorithm if exists
+    if (savedCodes[activeVisualization]) {
+      setGeneratedCode(savedCodes[activeVisualization])
+    } else {
+      setGeneratedCode("")
+    }
+  }, [activeVisualization, savedCodes])
 
   // Auto-advance steps when playing
   useEffect(() => {
@@ -125,6 +166,51 @@ export default function DSAVisualizationLab() {
   
   // Get current visualization component
   const CurrentVisualization = Visualizations[activeVisualization]
+
+  // Handle code generation
+  const handleGenerateCode = async () => {
+    if (!codePrompt.trim()) {
+      toast({
+        title: "Empty prompt",
+        description: "Please enter a description of the code you want to generate.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const code = await generateDSACode(
+        currentAlgorithm.name,
+        `Generate JavaScript/TypeScript implementation for ${codePrompt} related to ${currentAlgorithm.name}`
+      )
+      setGeneratedCode(code)
+      
+      // Save this code for the current algorithm
+      setSavedCodes(prev => ({
+        ...prev,
+        [activeVisualization]: code
+      }))
+
+      toast({
+        title: "Code generated successfully",
+        description: "Your algorithm code is ready to explore."
+      })
+    } catch (error) {
+      toast({
+        title: "Failed to generate code",
+        description: "There was an error generating the code. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  // Handle switching to visualization tab
+  const handleSwitchToVisualize = () => {
+    setActiveTab("visualize")
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -240,7 +326,7 @@ export default function DSAVisualizationLab() {
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Operations:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      {currentAlgorithm.operations.map((op, i) => <li key={i}>{op}</li>)}
+                      {currentAlgorithm.operations.map((op: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => <li key={i}>{op}</li>)}
                     </ul>
                   </div>
                 )}
@@ -249,7 +335,7 @@ export default function DSAVisualizationLab() {
                   <div className="text-sm space-y-1 pt-2">
                     <div className="font-medium text-black">Time Complexity:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      {currentAlgorithm.complexity.map((item, i) => <li key={i}>{item}</li>)}
+                      {currentAlgorithm.complexity.map((item: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => <li key={i}>{item}</li>)}
                     </ul>
                   </div>
                 )}
@@ -258,7 +344,7 @@ export default function DSAVisualizationLab() {
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Key Concepts:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      {currentAlgorithm.concepts.map((concept, i) => <li key={i}>{concept}</li>)}
+                      {currentAlgorithm.concepts.map((concept: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => <li key={i}>{concept}</li>)}
                     </ul>
                   </div>
                 )}
@@ -267,7 +353,7 @@ export default function DSAVisualizationLab() {
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Common Algorithms:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      {currentAlgorithm.algorithms.map((algo, i) => <li key={i}>{algo}</li>)}
+                      {currentAlgorithm.algorithms.map((algo: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => <li key={i}>{algo}</li>)}
                     </ul>
                   </div>
                 )}
@@ -276,7 +362,7 @@ export default function DSAVisualizationLab() {
                   <div className="text-sm space-y-1 pt-2">
                     <div className="font-medium text-black">Common Problems:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      {currentAlgorithm.problems.map((problem, i) => <li key={i}>{problem}</li>)}
+                      {currentAlgorithm.problems.map((problem: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => <li key={i}>{problem}</li>)}
                     </ul>
                   </div>
                 )}
@@ -285,7 +371,7 @@ export default function DSAVisualizationLab() {
                   <div className="text-sm space-y-1">
                     <div className="font-medium text-black">Key Characteristics:</div>
                     <ul className="list-disc list-inside text-muted-foreground">
-                      {currentAlgorithm.characteristics.map((char, i) => <li key={i}>{char}</li>)}
+                      {currentAlgorithm.characteristics.map((char: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined, i: Key | null | undefined) => <li key={i}>{char}</li>)}
                     </ul>
                   </div>
                 )}
@@ -296,18 +382,102 @@ export default function DSAVisualizationLab() {
       </div>
 
       {/* Visualization Area */}
-      <div className="lg:w-2/3 bg-white rounded-lg overflow-hidden h-[600px] border border-gray-200">
-        {CurrentVisualization ? (
-          <CurrentVisualization 
-            currentStep={currentStep} 
-            speed={speed} 
-            isPlaying={isPlaying} 
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            Select a visualization
-          </div>
-        )}
+      <div className="lg:w-2/3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="visualize" className="flex items-center">
+              <Eye className="h-4 w-4 mr-2" />
+              Visualize
+            </TabsTrigger>
+            <TabsTrigger value="code" className="flex items-center">
+              <Code className="h-4 w-4 mr-2" />
+              Generate Code
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="visualize">
+            <div className="bg-white rounded-lg overflow-hidden h-[600px] border border-gray-200">
+              {CurrentVisualization ? (
+                <CurrentVisualization 
+                  currentStep={currentStep} 
+                  speed={speed} 
+                  isPlaying={isPlaying} 
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  Select a visualization
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="code">
+            <Card className="border rounded-lg">
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium text-black">Generate Algorithm Code</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Describe what you want to implement related to {currentAlgorithm.name} and get the code.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <Textarea 
+                    placeholder={`E.g., "Implement a function that reverses a linked list" or "Show me a recursive approach to the Fibonacci sequence"`}
+                    value={codePrompt}
+                    onChange={(e) => setCodePrompt(e.target.value)}
+                    className="min-h-24"
+                  />
+                  
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      onClick={handleGenerateCode} 
+                      className="flex-1"
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? "Generating..." : "Generate Code"}
+                    </Button>
+                    {generatedCode && (
+                      <Button 
+                        variant="outline" 
+                        onClick={handleSwitchToVisualize}
+                        className="flex-1"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Visualize
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {generatedCode && (
+                  <div className="mt-4">
+                    <h4 className="text-md font-medium mb-2 text-black">Generated Code:</h4>
+                    <div className="relative">
+                      <pre className="p-4 bg-gray-50 rounded-md overflow-x-auto text-sm">
+                        <code>{generatedCode}</code>
+                      </pre>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedCode);
+                          toast({
+                            title: "Copied to clipboard",
+                            description: "Code has been copied to your clipboard."
+                          });
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
