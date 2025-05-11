@@ -36,11 +36,30 @@ interface Topic {
 interface TopicDetailsProps {
   topic: Topic
   roadmapId: string
+  difficultyLevel?: string
 }
 
-export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
+export function TopicDetails({ topic, roadmapId, difficultyLevel = "intermediate" }: TopicDetailsProps) {
   const [updating, setUpdating] = useState<boolean>(false)
   const router = useRouter()
+
+  // Adapt content based on difficulty level
+  const adaptedKeyPoints = topic.keyPoints ? [...topic.keyPoints] : [];
+  let adaptedContent = topic.content;
+  let contentNotice = "";
+
+  if (difficultyLevel === "beginner") {
+    // For beginners: show simplified content and fewer key points
+    adaptedContent = topic.content?.split("\n").slice(0, Math.max(2, Math.floor((topic.content.split("\n").length * 0.7)))).join("\n");
+    contentNotice = "Showing simplified content optimized for beginners.";
+    // Keep only the first 3-4 key points for beginners if there are many
+    if (adaptedKeyPoints.length > 4) {
+      adaptedKeyPoints.splice(4);
+    }
+  } else if (difficultyLevel === "advanced") {
+    // For advanced: show all content and add a notice
+    contentNotice = "Showing complete advanced content.";
+  }
 
   const handleToggleComplete = async () => {
     try {
@@ -83,6 +102,21 @@ export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
     }
   }
 
+  // Filter resources based on difficulty level
+  const filteredResources = topic.resources ? topic.resources.filter(resource => {
+    // For beginners, prioritize easier content (e.g., video tutorials)
+    if (difficultyLevel === "beginner") {
+      return resource.type === "video" || (resource.platform && 
+             ["YouTube", "Khan Academy", "Coursera"].includes(resource.platform));
+    }
+    // For advanced, prioritize more academic/detailed content
+    if (difficultyLevel === "advanced") {
+      return true; // Show all resources for advanced
+    }
+    // For intermediate (default), show all resources
+    return true;
+  }) : [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -106,7 +140,7 @@ export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
               </label>
             </div>
 
-            <Link href={`/roadmap/${roadmapId}`}>
+            <Link href={`/roadmap/${roadmapId}?level=${difficultyLevel}`}>
               <Button variant="outline" size="sm">
                 Back to roadmap
               </Button>
@@ -125,28 +159,45 @@ export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
           <Card>
             <CardHeader>
               <CardTitle>Learning Content</CardTitle>
+              {contentNotice && (
+                <p className="text-sm text-muted-foreground">{contentNotice}</p>
+              )}
             </CardHeader>
             <CardContent>
-              {topic.content ? (
+              {adaptedContent ? (
                 <div className="prose max-w-none">
-                  {topic.content.split("\n").map((paragraph, idx) => (
+                  {adaptedContent.split("\n").map((paragraph, idx) => (
                     <p key={idx}>{paragraph}</p>
                   ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground">No content available for this topic.</p>
               )}
+              
+              {difficultyLevel === "beginner" && topic.content && topic.content.split("\n").length > adaptedContent.split("\n").length && (
+                <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    This is a simplified version of the content optimized for beginners. 
+                    <Link href={`/roadmap/${roadmapId}?topic=${topic.id}&level=intermediate`} className="ml-1 text-primary hover:underline">
+                      Switch to intermediate
+                    </Link> or 
+                    <Link href={`/roadmap/${roadmapId}?topic=${topic.id}&level=advanced`} className="ml-1 text-primary hover:underline">
+                      advanced
+                    </Link> to see more detailed content.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {topic.keyPoints && topic.keyPoints.length > 0 && (
+          {adaptedKeyPoints && adaptedKeyPoints.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Key Points</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {topic.keyPoints.map((point, index) => (
+                  {adaptedKeyPoints.map((point, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <span className="text-primary">•</span>
                       <span>{point}</span>
@@ -171,7 +222,7 @@ export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
                   {topic.nextTopics.map((nextTopicId) => (
                     <Link
                       key={nextTopicId}
-                      href={`/roadmap/${roadmapId}?topic=${nextTopicId}`}
+                      href={`/roadmap/${roadmapId}?topic=${nextTopicId}&level=${difficultyLevel}`}
                       className="flex items-center p-3 border rounded-lg hover:bg-accent transition-colors"
                     >
                       <div className="mr-2">
@@ -193,13 +244,23 @@ export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
           <Card>
             <CardHeader>
               <CardTitle>Learning Resources</CardTitle>
+              {difficultyLevel && (
+                <p className="text-sm text-muted-foreground">
+                  {difficultyLevel === "beginner" 
+                    ? "Showing beginner-friendly learning resources." 
+                    : difficultyLevel === "advanced" 
+                      ? "Showing all resources including advanced materials." 
+                      : "Showing comprehensive learning resources."
+                  }
+                </p>
+              )}
             </CardHeader>
             <CardContent>
-              {!topic.resources || topic.resources.length === 0 ? (
+              {!filteredResources || filteredResources.length === 0 ? (
                 <p className="text-muted-foreground">No resources available for this topic.</p>
               ) : (
                 <div className="space-y-4">
-                  {topic.resources.map((resource) => (
+                  {filteredResources.map((resource) => (
                     <div key={resource.id} className="border rounded-lg p-4 space-y-2">
                       <div className="flex items-center gap-2">
                         <ResourceTypeIcon type={resource.type} />
@@ -222,13 +283,13 @@ export function TopicDetails({ topic, roadmapId }: TopicDetailsProps) {
               <div className="mt-6">
                 <h3 className="font-medium mb-3">Practice Opportunities</h3>
                 <div className="space-y-2">
-                  <Link href={`/mocktest?topic=${encodeURIComponent(topic.title)}`}>
+                  <Link href={`/mocktest?topic=${encodeURIComponent(topic.title)}&level=${difficultyLevel}`}>
                     <Button variant="outline" className="w-full justify-between">
                       <span>Take Practice Quiz</span>
                       <FaArrowRight className="text-xs" />
                     </Button>
                   </Link>
-                  <Link href={`/pyq?topic=${encodeURIComponent(topic.title)}`}>
+                  <Link href={`/pyq?topic=${encodeURIComponent(topic.title)}&level=${difficultyLevel}`}>
                     <Button variant="outline" className="w-full justify-between">
                       <span>Relevant Previous Questions</span>
                       <FaArrowRight className="text-xs" />

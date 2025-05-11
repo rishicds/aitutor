@@ -4,8 +4,47 @@ import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from
 
 export async function POST(request: NextRequest) {
   try {
-    const { roadmapId, topicId, sessionId, completed } = await request.json()
+    const { roadmapId, topicId, sessionId, completed, difficultyLevel } = await request.json()
 
+    // Check if this is a difficulty level update
+    if (difficultyLevel) {
+      if (!roadmapId || !sessionId) {
+        return NextResponse.json(
+          {
+            error: "Missing required parameters. Please provide roadmapId and sessionId.",
+          },
+          { status: 400 },
+        )
+      }
+
+      // Get the roadmap document
+      const roadmapRef = doc(db, "roadmaps", roadmapId)
+      const roadmapSnap = await getDoc(roadmapRef)
+
+      if (!roadmapSnap.exists()) {
+        return NextResponse.json({ error: "Roadmap not found" }, { status: 404 })
+      }
+
+      const roadmapData = roadmapSnap.data()
+
+      // Ensure the roadmap belongs to the session
+      if (roadmapData.sessionId !== sessionId) {
+        return NextResponse.json({ error: "Unauthorized access to roadmap" }, { status: 403 })
+      }
+
+      // Update the difficulty level
+      await updateDoc(roadmapRef, {
+        currentLevel: difficultyLevel,
+        updatedAt: serverTimestamp(),
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Roadmap difficulty level updated to ${difficultyLevel}`,
+      })
+    }
+
+    // Otherwise, handle the topic completion update
     if (!roadmapId || !topicId || !sessionId || completed === undefined) {
       return NextResponse.json(
         {

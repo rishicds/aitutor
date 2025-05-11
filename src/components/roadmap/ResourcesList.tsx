@@ -25,14 +25,15 @@ interface Topic {
 
 interface ResourcesListProps {
   topics: Topic[];
+  difficultyLevel?: string;
 }
 
-export function ResourcesList({ topics }: ResourcesListProps) {
+export function ResourcesList({ topics, difficultyLevel = "intermediate" }: ResourcesListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [resourceFilter, setResourceFilter] = useState<"all" | "video" | "article" | "other">("all");
   
   // Extract all resources from topics
-  const allResources = topics.flatMap(topic => 
+  let allResources = topics.flatMap(topic => 
     (topic.resources || []).map(resource => ({
       ...resource,
       topicId: topic.id,
@@ -40,6 +41,32 @@ export function ResourcesList({ topics }: ResourcesListProps) {
       topicCompleted: topic.completed
     }))
   );
+  
+  // Filter resources based on difficulty level
+  if (difficultyLevel === "beginner") {
+    // For beginners: prioritize video resources and filter out complex academic resources
+    allResources = allResources.filter(resource => {
+      // Prioritize video resources for beginners
+      if (resource.type === "video") return true;
+      
+      // Include resources from beginner-friendly platforms
+      if (resource.platform && 
+          ["YouTube", "Khan Academy", "Coursera", "Udemy", "FreeCodeCamp"].includes(resource.platform)) {
+        return true;
+      }
+      
+      // Exclude resources with "advanced" or "academic" in the title
+      if (resource.title.toLowerCase().includes("advanced") || 
+          resource.title.toLowerCase().includes("academic")) {
+        return false;
+      }
+      
+      return true;
+    });
+  } else if (difficultyLevel === "advanced") {
+    // For advanced users: prioritize academic and comprehensive resources
+    // We can show all resources, but we could optionally filter here if needed
+  }
   
   // Filter resources based on search query and resource type
   const filteredResources = allResources.filter(resource => {
@@ -119,9 +146,16 @@ export function ResourcesList({ topics }: ResourcesListProps) {
           </div>
         </div>
         
-        <p className="text-sm text-muted-foreground">
-          {filteredResources.length} resources found
-        </p>
+        <div className="flex justify-between items-center">
+          <p className="text-sm text-muted-foreground">
+            {filteredResources.length} resources found
+          </p>
+          {difficultyLevel && (
+            <Badge variant="outline" className="capitalize">
+              {difficultyLevel} level resources
+            </Badge>
+          )}
+        </div>
       </div>
       
       {Object.keys(resourcesByTopic).length === 0 ? (

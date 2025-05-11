@@ -249,6 +249,7 @@ export async function POST(request: NextRequest) {
       course: courseInfo.courseLevel || "General",
       status: "completed",
       topics: enhancedTopics,
+      currentLevel: "intermediate",
       updatedAt: serverTimestamp(),
     });
 

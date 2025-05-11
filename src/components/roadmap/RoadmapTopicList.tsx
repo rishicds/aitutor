@@ -19,9 +19,10 @@ interface RoadmapTopicListProps {
   topics: Topic[]
   roadmapId: string
   selectedTopicId?: string
+  difficultyLevel?: string
 }
 
-export function RoadmapTopicList({ topics, roadmapId, selectedTopicId }: RoadmapTopicListProps) {
+export function RoadmapTopicList({ topics, roadmapId, selectedTopicId, difficultyLevel = "intermediate" }: RoadmapTopicListProps) {
   const [updating, setUpdating] = useState<string | null>(null)
   const router = useRouter()
 
@@ -91,7 +92,7 @@ export function RoadmapTopicList({ topics, roadmapId, selectedTopicId }: Roadmap
               className="mt-1"
             />
 
-            <Link href={`/roadmap/${roadmapId}?topic=${topic.id}`} className="flex-1">
+            <Link href={`/roadmap/${roadmapId}?topic=${topic.id}&level=${difficultyLevel}`} className="flex-1">
               <div>
                 <h3 className={`font-medium ${topic.completed ? "line-through text-muted-foreground" : ""}`}>
                   {topic.title}
