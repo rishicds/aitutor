@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Play, Pause, SkipForward, SkipBack } from "lucide-react"
 
-
 interface DynamicProgrammingVisualizationProps {
   currentStep: number
   speed: number
@@ -28,13 +27,15 @@ export default function DynamicProgrammingVisualization({
   const [algorithm, setAlgorithm] = useState<string>("fibonacci")
   const [inputValue, setInputValue] = useState<string>("5")
   const [dpTable, setDpTable] = useState<number[][]>([])
+  const [currentDpTable, setCurrentDpTable] = useState<number[][]>([])
   const [message, setMessage] = useState<string>("")
   const [activeCell, setActiveCell] = useState<{i: number, j: number} | null>(null)
-  const [steps, setSteps] = useState<{i: number, j: number, message: string}[]>([])
-
-
-
-  
+  const [steps, setSteps] = useState<{
+    i: number, 
+    j: number, 
+    message: string,
+    table: number[][]
+  }[]>([])
 
   // Run the selected algorithm and create visualization data
   const executeAlgorithm = () => {
@@ -71,9 +72,14 @@ export default function DynamicProgrammingVisualization({
       const step = steps[currentStep]
       setActiveCell({i: step.i, j: step.j})
       setMessage(step.message)
+      setCurrentDpTable(step.table) // Set the current state of the DP table for this step
     } else if (steps.length > 0) {
       setMessage("Visualization complete")
       setActiveCell(null)
+      // Show final table state
+      if (steps.length > 0) {
+        setCurrentDpTable(steps[steps.length - 1].table)
+      }
     }
   }, [currentStep, steps])
 
@@ -84,33 +90,40 @@ export default function DynamicProgrammingVisualization({
     dp[0] = 0
     dp[1] = 1
     
-    const newTable: number[][] = [[...dp]]
-    const newSteps: {i: number, j: number, message: string}[] = []
+    const newSteps: {i: number, j: number, message: string, table: number[][]}[] = []
     
     // Add base cases to steps
+    const initialTable = [[...dp]]
     newSteps.push({
       i: 0, 
       j: 0, 
-      message: "Base case: F(0) = 0"
+      message: "Base case: F(0) = 0",
+      table: initialTable
     })
     
+    const step1Table = [[...dp]]
     newSteps.push({
       i: 0, 
       j: 1, 
-      message: "Base case: F(1) = 1"
+      message: "Base case: F(1) = 1",
+      table: step1Table
     })
     
     // Calculate and add steps
     for (let i = 2; i <= n; i++) {
       dp[i] = dp[i - 1] + dp[i - 2]
+      const stepTable = [[...dp]] // Create a new copy for each step
+      
       newSteps.push({
         i: 0,
         j: i,
-        message: `F(${i}) = F(${i-1}) + F(${i-2}) = ${dp[i-1]} + ${dp[i-2]} = ${dp[i]}`
+        message: `F(${i}) = F(${i-1}) + F(${i-2}) = ${dp[i-1]} + ${dp[i-2]} = ${dp[i]}`,
+        table: stepTable
       })
     }
     
-    setDpTable(newTable)
+    setDpTable([[...dp]]) // Final state table
+    setCurrentDpTable([[...dp]]) // Current displayed table
     setSteps(newSteps)
     setMessage(`Fibonacci sequence up to F(${n}) calculated`)
   }
@@ -133,51 +146,72 @@ export default function DynamicProgrammingVisualization({
       .fill(0)
       .map(() => Array(capacity + 1).fill(0))
     
-    const newSteps: {i: number, j: number, message: string}[] = []
+    const newSteps: {i: number, j: number, message: string, table: number[][]}[] = []
+    
+    // We'll create simplified tables for display showing only key weights
+    const simplifyTable = (fullTable: number[][]) => {
+      return fullTable.map(row => 
+        [0, 10, 20, 30, 40, 50].map(w => row[w])
+      )
+    }
     
     // Fill the DP table
     for (let i = 0; i <= items.length; i++) {
       for (let w = 0; w <= capacity; w++) {
+        const tableCopy = dp.map(row => [...row]) // Create deep copy of current state
+        
         if (i === 0 || w === 0) {
           dp[i][w] = 0
-          newSteps.push({
-            i,
-            j: w,
-            message: `Base case: No items or no capacity, value = 0`
-          })
+          
+          // Only add steps for the weights we're actually displaying
+          if ([0, 10, 20, 30, 40, 50].includes(w)) {
+            newSteps.push({
+              i,
+              j: [0, 10, 20, 30, 40, 50].indexOf(w), // Convert to simplified table index
+              message: `Base case: No items or no capacity, value = 0`,
+              table: simplifyTable(tableCopy)
+            })
+          }
         } else if (items[i - 1].weight <= w) {
           // Can include this item
           const includeItem = items[i - 1].value + dp[i - 1][w - items[i - 1].weight]
           const excludeItem = dp[i - 1][w]
           dp[i][w] = Math.max(includeItem, excludeItem)
           
-          newSteps.push({
-            i,
-            j: w,
-            message: `Item ${i} (value: ${items[i-1].value}, weight: ${items[i-1].weight}): 
-                    Max of including (${includeItem}) vs excluding (${excludeItem}) = ${dp[i][w]}`
-          })
+          // Only add steps for the weights we're actually displaying
+          if ([0, 10, 20, 30, 40, 50].includes(w)) {
+            newSteps.push({
+              i,
+              j: [0, 10, 20, 30, 40, 50].indexOf(w), // Convert to simplified table index
+              message: `Item ${i} (value: ${items[i-1].value}, weight: ${items[i-1].weight}): 
+                    Max of including (${includeItem}) vs excluding (${excludeItem}) = ${dp[i][w]}`,
+              table: simplifyTable(tableCopy)
+            })
+          }
         } else {
           // Can't include this item
           dp[i][w] = dp[i - 1][w]
-          newSteps.push({
-            i,
-            j: w,
-            message: `Item ${i} (weight: ${items[i-1].weight}) too heavy for capacity ${w}, 
-                    take previous value ${dp[i][w]}`
-          })
+          
+          // Only add steps for the weights we're actually displaying
+          if ([0, 10, 20, 30, 40, 50].includes(w)) {
+            newSteps.push({
+              i,
+              j: [0, 10, 20, 30, 40, 50].indexOf(w), // Convert to simplified table index
+              message: `Item ${i} (weight: ${items[i-1].weight}) too heavy for capacity ${w}, 
+                    take previous value ${dp[i][w]}`,
+              table: simplifyTable(tableCopy)
+            })
+          }
         }
       }
     }
     
-    // We don't want to display the full capacity table (too large)
-    // So we'll display a simplified version showing key weights
-    const simplifiedTable = dp.map(row => 
-      [0, 10, 20, 30, 40, 50].map(w => row[w])
-    )
+    // Final simplified table
+    const finalTable = simplifyTable(dp)
     
-    setDpTable(simplifiedTable)
-    setSteps(newSteps.filter(step => [0, 10, 20, 30, 40, 50].includes(step.j)))
+    setDpTable(finalTable)
+    setCurrentDpTable(finalTable)
+    setSteps(newSteps)
     setMessage(`Knapsack problem with ${items.length} items solved`)
   }
 
@@ -191,17 +225,21 @@ export default function DynamicProgrammingVisualization({
       .fill(0)
       .map(() => Array(s2.length + 1).fill(0))
     
-    const newSteps: {i: number, j: number, message: string}[] = []
+    const newSteps: {i: number, j: number, message: string, table: number[][]}[] = []
     
     // Fill the DP table
     for (let i = 0; i <= s1.length; i++) {
       for (let j = 0; j <= s2.length; j++) {
+        // Create a deep copy of the current state of the DP table for this step
+        const tableCopy = dp.map(row => [...row])
+        
         if (i === 0 || j === 0) {
           dp[i][j] = 0
           newSteps.push({
             i,
             j,
-            message: `Base case: Empty string, LCS length = 0`
+            message: `Base case: Empty string, LCS length = 0`,
+            table: tableCopy
           })
         } else if (s1[i - 1] === s2[j - 1]) {
           dp[i][j] = dp[i - 1][j - 1] + 1
@@ -209,7 +247,8 @@ export default function DynamicProgrammingVisualization({
             i,
             j,
             message: `Characters match: '${s1[i-1]}' = '${s2[j-1]}', 
-                    LCS length = ${dp[i-1][j-1]} + 1 = ${dp[i][j]}`
+                    LCS length = ${dp[i-1][j-1]} + 1 = ${dp[i][j]}`,
+            table: tableCopy
           })
         } else {
           dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
@@ -217,13 +256,16 @@ export default function DynamicProgrammingVisualization({
             i,
             j,
             message: `Characters don't match: '${s1[i-1]}' ≠ '${s2[j-1]}', 
-                    Take max of left (${dp[i][j-1]}) and top (${dp[i-1][j]}) = ${dp[i][j]}`
+                    Take max of left (${dp[i][j-1]}) and top (${dp[i-1][j]}) = ${dp[i][j]}`,
+            table: tableCopy
           })
         }
       }
     }
     
-    setDpTable(dp)
+    // Make sure to set the final dp table
+    setDpTable(dp.map(row => [...row]))
+    setCurrentDpTable(dp.map(row => [...row]))
     setSteps(newSteps)
     setMessage(`LCS of "${s1}" and "${s2}" calculated`)
   }
@@ -231,6 +273,7 @@ export default function DynamicProgrammingVisualization({
   // Reset visualization
   const clearVisualization = () => {
     setDpTable([])
+    setCurrentDpTable([])
     setSteps([])
     setActiveCell(null)
     setMessage("")
@@ -313,12 +356,12 @@ export default function DynamicProgrammingVisualization({
       </div>
 
       <div className="flex-1 overflow-auto p-4">
-        {dpTable.length > 0 && (
+        {currentDpTable.length > 0 && (
           <div className="flex flex-col items-center">
             <div className="dp-grid-container overflow-auto max-h-full">
               <table className="dp-grid">
                 <tbody>
-                  {dpTable.map((row, i) => (
+                  {currentDpTable.map((row, i) => (
                     <tr key={i}>
                       {row.map((cell, j) => (
                         <td 

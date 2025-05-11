@@ -34,11 +34,13 @@ export default function LinkedListVisualization() {
   const [nodePosition, setNodePosition] = useState<string>("0")
   const [listSize, setListSize] = useState<number>(0)
   const [message, setMessage] = useState<string>("")
-
-  
   
   // Initialize canvas and create initial linked list
   useEffect(() => {
+    // Clear any existing list first
+    headRef.current = null
+    setListSize(0)
+    
     // Create initial linked list with 3 nodes
     insertNode(10, null)
     insertNode(20, null)
@@ -138,14 +140,44 @@ export default function LinkedListVisualization() {
     ctx.fill()
   }
   
+  // Update all node positions based on their index in the list
+  const updateAllNodePositions = () => {
+    const spacing = 150 // Space between nodes
+    let current = headRef.current
+    let index = 0
+    
+    while (current) {
+      animateNodeMovement(current, index * spacing + 100, current.y)
+      current = current.next
+      index++
+    }
+  }
+  
+  // Count the actual number of nodes in the list
+  const countNodes = () => {
+    let count = 0
+    let current = headRef.current
+    
+    while (current) {
+      count++
+      current = current.next
+    }
+    
+    return count
+  }
+  
   // Insert a node into the linked list
   const insertNode = (value: number, position: number | null) => {
     const spacing = 150 // Space between nodes
-    const newNode = new ListNode(value, listSize * spacing + 100) // Position along x-axis
+    const currentSize = countNodes() // Get actual current size
+    
+    // Create new node at a temporary position
+    const newNode = new ListNode(value, 0) // Will be positioned correctly later
     
     if (!headRef.current) {
       // Empty list
       headRef.current = newNode
+      animateNodeMovement(newNode, 100, 100) // Position the first node
       setMessage(`Created head node with value ${value}`)
       setListSize(1)
       return
@@ -154,18 +186,6 @@ export default function LinkedListVisualization() {
     if (position === 0) {
       // Insert at beginning
       newNode.next = headRef.current
-      
-      // Update position of all nodes
-      let current = headRef.current
-      let index = 1
-      
-      while (current) {
-        // Animate node moving to new position
-        animateNodeMovement(current, index * spacing + 100, current.y)
-        current = current.next
-        index++
-      }
-      
       headRef.current = newNode
       setMessage(`Inserted node with value ${value} at the beginning`)
     } else {
@@ -187,17 +207,6 @@ export default function LinkedListVisualization() {
         if (current) {
           // Insert in middle
           newNode.next = current
-          
-          // Update positions of subsequent nodes
-          let temp = current
-          let tempIndex = index + 1
-          
-          while (temp) {
-            animateNodeMovement(temp, tempIndex * spacing + 100, temp.y)
-            temp = temp.next
-            tempIndex++
-          }
-          
           setMessage(`Inserted node with value ${value} at position ${index}`)
         } else {
           // Insert at end
@@ -206,8 +215,12 @@ export default function LinkedListVisualization() {
       }
     }
     
+    // Update all node positions after insertion
+    updateAllNodePositions()
+    
     // Update list size
-    setListSize(listSize + 1)
+    const newSize = countNodes()
+    setListSize(newSize)
   }
   
   // Delete a node from the linked list
@@ -217,7 +230,6 @@ export default function LinkedListVisualization() {
       return
     }
     
-    const spacing = 150 // Space between nodes
     let current = headRef.current
     let prev = null
     let index = 0
@@ -245,18 +257,16 @@ export default function LinkedListVisualization() {
     // Animate deletion
     animateNodeDeletion(current)
     
-    // Update positions of subsequent nodes
-    let temp = current.next
-    let tempIndex = index
-    
-    while (temp) {
-      animateNodeMovement(temp, tempIndex * spacing + 100, temp.y)
-      temp = temp.next
-      tempIndex++
-    }
+    // Update all node positions after deletion
+    setTimeout(() => {
+      updateAllNodePositions()
+    }, 300) // Short delay to see the deletion animation
     
     setMessage(`Deleted node at position ${position}`)
-    setListSize(listSize - 1)
+    
+    // Update list size
+    const newSize = countNodes() - 1 // -1 because the node is visually still there during animation
+    setListSize(newSize)
   }
   
   // Search for a value in the linked list

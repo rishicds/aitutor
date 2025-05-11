@@ -13,7 +13,7 @@ import type * as THREE from "three"
 import AIAnalysis from "./ai-analysis"
 import SaltAnalysisContent from "./salt-analysis-content"
 import GraphPlotterContent from "./graph-plotter-content"
-import DSAVisualizationLab from "@/app/dsa/page"
+import DSAVisualizationLab from "@/app/lab/dsa/page"
 
 // Define experiment interface
 interface Experiment {
