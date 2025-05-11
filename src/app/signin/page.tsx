@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
 import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebaseConfig"
@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import type React from "react"
 import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle } from "lucide-react"
 
-export default function SignIn() {
+// Client component that uses search params
+function SignInForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -445,5 +446,14 @@ export default function SignIn() {
         }
       `}</style>
     </div>
+  )
+}
+
+// Main page component
+export default function SignIn() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   )
 }

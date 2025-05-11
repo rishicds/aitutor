@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth, db } from "@/lib/firebaseConfig";
@@ -25,7 +25,8 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatPage() {
+// Client component that uses search params
+function ChatPageContent() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -498,5 +499,14 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <ChatPageContent />
+    </Suspense>
   );
 } 
