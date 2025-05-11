@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
@@ -61,7 +61,8 @@ const speakText = (text: string) => {
   window.speechSynthesis.speak(utterance);
 };
 
-export default function AITutor() {
+// Client component that uses search params
+function AITutorContent() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -464,5 +465,14 @@ export default function AITutor() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component
+export default function AITutor() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <AITutorContent />
+    </Suspense>
   );
 } 
