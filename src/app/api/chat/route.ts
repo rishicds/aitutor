@@ -1,7 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { auth, db } from "@/lib/firebaseConfig";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 
 // Initialize Google AI with proper error handling
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -106,6 +112,55 @@ IMPORTANT INSTRUCTIONS:
 6. Keep explanations clear and conversational.`,
 };
 
+// Add sentiment analysis function
+function analyzeSentiment(text: string) {
+  // Simple sentiment analysis based on positive/negative words
+  const positiveWords = [
+    "good",
+    "great",
+    "excellent",
+    "amazing",
+    "helpful",
+    "thanks",
+    "thank",
+    "perfect",
+    "understand",
+    "clear",
+  ];
+  const negativeWords = [
+    "bad",
+    "poor",
+    "wrong",
+    "confusing",
+    "difficult",
+    "hard",
+    "not",
+    "don't",
+    "doesn't",
+    "can't",
+  ];
+
+  const words = text.toLowerCase().split(/\s+/);
+  let positiveCount = 0;
+  let negativeCount = 0;
+
+  words.forEach((word) => {
+    if (positiveWords.includes(word)) positiveCount++;
+    if (negativeWords.includes(word)) negativeCount++;
+  });
+
+  const total = positiveCount + negativeCount;
+  if (total === 0) return { score: 0, rating: "neutral" };
+
+  const score = (positiveCount - negativeCount) / total;
+  let rating = "neutral";
+
+  if (score > 0.3) rating = "positive";
+  else if (score < -0.3) rating = "negative";
+
+  return { score, rating };
+}
+
 export async function POST(req: Request) {
   try {
     const { message, subject, history, userId } = await req.json();
@@ -117,9 +172,33 @@ export async function POST(req: Request) {
       );
     }
 
+    // Analyze sentiment of the message
+    const sentiment = analyzeSentiment(message);
+
+    // Store sentiment data in Firebase
+    const sentimentRef = collection(db, "sentiment_analysis");
+    await addDoc(sentimentRef, {
+      userId,
+      message,
+      sentiment: sentiment.rating,
+      score: sentiment.score,
+      subject,
+      timestamp: serverTimestamp(),
+    });
+
+    // Update user's overall sentiment rating
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      lastSentiment: sentiment.rating,
+      lastSentimentScore: sentiment.score,
+      lastInteraction: serverTimestamp(),
+    });
+
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const subjectPrompt = SUBJECT_PROMPTS[subject as keyof typeof SUBJECT_PROMPTS] || "You are a general tutor. Answer questions appropriately. Always respond in plain text without any markdown formatting.";
+    const subjectPrompt =
+      SUBJECT_PROMPTS[subject as keyof typeof SUBJECT_PROMPTS] ||
+      "You are a general tutor. Answer questions appropriately. Always respond in plain text without any markdown formatting.";
 
     // Detect if the user is asking for a diagram/flowchart/chart
     const diagramKeywords = /diagram|flowchart|chart/i;
@@ -148,7 +227,11 @@ export async function POST(req: Request) {
     if (prependMermaidInstruction) {
       validHistory.unshift({
         role: "user",
-        parts: [{ text: "For this response, you must include a valid Mermaid code block (inside triple backticks with 'mermaid') at the end. Do not describe the diagram in text if a Mermaid diagram is provided." }],
+        parts: [
+          {
+            text: "For this response, you must include a valid Mermaid code block (inside triple backticks with 'mermaid') at the end. Do not describe the diagram in text if a Mermaid diagram is provided.",
+          },
+        ],
       });
     }
 
@@ -172,7 +255,7 @@ export async function POST(req: Request) {
       if (mermaidMatch) {
         visualization = {
           type: "mermaid",
-          code: mermaidMatch[1].trim()
+          code: mermaidMatch[1].trim(),
         };
       }
       cleanText = text.replace(/```mermaid\n[\s\S]*?```/g, "").trim();
@@ -182,9 +265,10 @@ export async function POST(req: Request) {
       visualization = { type: "mermaid", code: sampleMermaid };
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       response: cleanText,
-      visualization: visualization
+      visualization: visualization,
+      sentiment: sentiment,
     });
   } catch (error) {
     console.error("Error in chat API:", error);

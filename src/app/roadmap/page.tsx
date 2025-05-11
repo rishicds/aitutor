@@ -1,15 +1,24 @@
-import { FileUpload } from "@/components/roadmap/FileUpload"
-import { RoadmapList } from "@/components/roadmap/RoadmapList"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { FileUpload } from "@/components/roadmap/FileUpload";
+import { RoadmapList } from "@/components/roadmap/RoadmapList";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default async function RoadmapPage() {
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
       <div className="space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Learning Roadmap</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">
+            Learning Roadmap
+          </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Transform your syllabus into an interactive learning path with curated resources and progress tracking.
+            Transform your syllabus into an interactive learning path with
+            curated resources and progress tracking.
           </p>
         </div>
 
@@ -17,7 +26,10 @@ export default async function RoadmapPage() {
           <Card>
             <CardHeader>
               <CardTitle>Upload Your Syllabus</CardTitle>
-              <CardDescription>Upload a PDF syllabus to generate a personalized learning roadmap</CardDescription>
+              <CardDescription>
+                Upload a PDF syllabus to generate a personalized learning
+                roadmap
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <FileUpload />
@@ -27,7 +39,9 @@ export default async function RoadmapPage() {
           <Card>
             <CardHeader>
               <CardTitle>How It Works</CardTitle>
-              <CardDescription>Learn how we transform your syllabus into an interactive roadmap</CardDescription>
+              <CardDescription>
+                Learn how we transform your syllabus into an interactive roadmap
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start space-x-3">
@@ -36,7 +50,9 @@ export default async function RoadmapPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Upload Syllabus</h3>
-                  <p className="text-sm text-muted-foreground">Upload your course syllabus PDF document</p>
+                  <p className="text-sm text-muted-foreground">
+                    Upload your course syllabus PDF document
+                  </p>
                 </div>
               </div>
 
@@ -46,7 +62,9 @@ export default async function RoadmapPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Topic Extraction</h3>
-                  <p className="text-sm text-muted-foreground">Our AI identifies key topics from your syllabus</p>
+                  <p className="text-sm text-muted-foreground">
+                    Our AI identifies key topics from your syllabus
+                  </p>
                 </div>
               </div>
 
@@ -83,5 +101,5 @@ export default async function RoadmapPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
