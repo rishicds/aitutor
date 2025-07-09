@@ -19,10 +19,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Optimize bundle size
-  experimental: {
-    optimizeCss: true,
-  },
+  // Disable source maps in production to reduce bundle size
+  productionBrowserSourceMaps: false,
   /* other config options here */
 };
 

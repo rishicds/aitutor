@@ -100,7 +100,7 @@ async function generateDSACode(algorithm: string, prompt: string) {
   }
 }
 
-export default function DSAVisualizationLab() {
+export default function DSAPage() {
   const [activeVisualization, setActiveVisualization] = useState("linked-list")
   const [speed, setSpeed] = useState(50)
   const [isPlaying, setIsPlaying] = useState(false)

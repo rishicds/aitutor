@@ -38,6 +38,7 @@
     "cloudinary": "^2.6.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
+    "critters": "^0.0.25",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase": "^11.2.0",
