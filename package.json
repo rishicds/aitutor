@@ -33,7 +33,6 @@
     "@tanstack/react-query": "^5.75.4",
     "@types/react-syntax-highlighter": "^15.5.13",
     "ai": "^2.2.31",
-    "aitutor": "file:",
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.6.1",

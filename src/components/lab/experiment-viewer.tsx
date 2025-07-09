@@ -13,7 +13,10 @@ import type * as THREE from "three"
 import AIAnalysis from "./ai-analysis"
 import SaltAnalysisContent from "./salt-analysis-content"
 import GraphPlotterContent from "./graph-plotter-content"
-import DSAVisualizationLab from "@/app/lab/dsa/page"
+import dynamic from "next/dynamic"
+
+// Dynamically import DSA visualization to avoid circular dependency
+const DSAVisualizationLab = dynamic(() => import("../lab/dsa-visualization-lab"), { ssr: false })
 
 // Define experiment interface
 interface Experiment {

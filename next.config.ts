@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Optimize bundle size
+  experimental: {
+    optimizeCss: true,
+  },
   /* other config options here */
 };
 
